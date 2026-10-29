@@ -1,0 +1,426 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>POS Manager</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=YOUR_TMAP_APP_KEY"></script>
+    <style>
+        body { font-family: 'Pretendard', sans-serif; display: flex; margin: 0; background-color: #f1f5f9; height: 100vh; overflow: hidden; }
+        .sidebar { width: 330px; background: white; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; flex-shrink: 0; }
+        .sidebar h2 { margin: 0 0 20px 0; color: #0f172a; font-size: 20px; }
+        .sidebar-btn { width: 100%; padding: 12px; margin-bottom: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; }
+        .route-title { margin: 20px 0 10px 0; font-size: 16px; font-weight: bold; color: #334155; }
+        .route-item { padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 5px; background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .route-name { font-weight: bold; font-size: 14px; color: #2563eb; cursor: pointer; margin-bottom: 2px; }
+        .route-addr { font-size: 12px; color: #94a3b8; }
+        .route-controls { display: flex; justify-content: flex-end; gap: 4px; margin-top: 5px; }
+        .route-controls button { padding: 2px 6px; font-size: 12px; border: 1px solid #cbd5e1; background: white; border-radius: 4px; cursor: pointer; }
+        .btn-navi { background: #111827; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; transition: 0.2s; }
+        .btn-navi:hover { opacity: 0.9; }
+        
+        .api-result-box { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 14px; color: #0f172a; border: 1px solid #bae6fd; line-height: 1.5; }
+        .api-val { font-weight: bold; color: #0369a1; font-size: 16px; }
+
+        .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; box-sizing: border-box; }
+        .dashboard-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 30px; }
+        .card { background: white; padding: 20px; border-radius: 12px; border: 1px solid #e2e8f0; box-shadow: 0 2px 10px rgba(0,0,0,0.02); }
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-box input { flex-grow: 1; padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; outline: none; }
+        .btn-primary { background: #3b82f6; color: white; padding: 14px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        table { width: 100%; border-collapse: collapse; font-size: 14px; }
+        th, td { border-bottom: 1px solid #e2e8f0; padding: 12px 10px; text-align: left; }
+        .btn-add-route { background-color: #f1f5f9; border: 1px solid #cbd5e1; padding: 6px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+
+        .floating-container { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 15px; z-index: 100; }
+        .float-btn { width: 55px; height: 55px; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .btn-phone { background-color: #22c55e; }
+        .btn-bot { background-color: #3b82f6; }
+
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 999; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 500px; padding: 25px; border-radius: 16px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 80vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; }
+        
+        .call-item { padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; }
+        .call-active { border-color: #22c55e; background: #f0fdf4; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); } 70% { box-shadow: 0 0 0 10px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+        .pulse { display: inline-block; width: 10px; height: 10px; background: #22c55e; border-radius: 50%; animation: pulse 1.5s infinite; margin-right: 5px; }
+
+        .action-row { display: flex; gap: 8px; margin-top: 10px; }
+        .action-row button { flex: 1; padding: 8px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-go { background: #3b82f6; } .btn-hist { background: #8b5cf6; } .btn-new { background: #f59e0b; }
+        
+        .task-item { padding:15px; border:1px solid #cbd5e1; border-radius:8px; margin-bottom:10px; transition: 0.2s; cursor:pointer; }
+        .task-item:hover { background:#f8fafc; border-color:#3b82f6; }
+        .task-badge { background:#f59e0b; color:white; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:5px; }
+        .task-badge-unassigned { background:#94a3b8; color:white; padding:4px 8px; border-radius:4px; font-size:12px; font-weight:bold; margin-right:5px; }
+        .btn-process { width: 100%; background: #10b981; color: white; border: none; padding: 14px; border-radius: 8px; font-size: 15px; font-weight: bold; margin-top: 12px; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        .btn-process:hover { background: #059669; }
+    </style>
+</head>
+<body onload="initTmap()">
+    <div class="sidebar">
+        <h2>🏢 POS Manager</h2>
+        <button class="sidebar-btn" onclick="location.href='/'">🏠 메인 대시보드</button>
+        <button class="sidebar-btn" onclick="location.href='/register'">📝 신규 가맹점 등록</button>
+        <button class="sidebar-btn" onclick="location.href='/history'">📋 전체 작업 이력</button>
+        <hr style="border:0; border-top:1px solid #e2e8f0; margin:15px 0; width:100%;">
+        <div class="route-title">📍 목적지 경로 (<span id="routeCount">0</span>곳)</div>
+        <div id="routeList"></div>
+        
+        <button class="btn-navi" style="background:#1e3a8a;" onclick="calculateTmapApi()">🛰️ T맵 API 길찾기 및 지도 (PC용)</button>
+        <div id="apiResultBox" class="api-result-box"></div>
+        <div id="map_wrap" style="display:none; width:100%; height:200px; margin-top:10px; border-radius:8px; overflow:hidden; border:1px solid #cbd5e1;">
+            <div id="map_div"></div>
+        </div>
+
+        <button class="btn-navi" onclick="executeTmapNavi()">📱 T맵 모바일 앱 열기 (폰 전용)</button>
+        <button class="btn-clear" onclick="clearRoutes()" style="background:#ef4444; color:white; width:100%; padding:10px; border:none; border-radius:8px; margin-top:5px; font-weight:bold; cursor:pointer;">🧹 경로 초기화</button>
+    </div>
+
+    <div class="main-content">
+        <div class="dashboard-grid">
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="color:#10b981; margin:0;">✅ 내 예정 업무 (오혜성)</h3>
+                    <button style="background:none; border:none; cursor:pointer; color:#3b82f6; font-weight:bold;" onclick="loadMyTasks()">🔄 새로고침</button>
+                </div>
+                <div id="myTaskList" style="margin-top:15px; max-height:400px; overflow-y:auto; padding-right:5px;"></div>
+            </div>
+            <div class="card">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <h3 style="color:#f59e0b; margin:0;">❓ 처리자 미지정 업무</h3>
+                </div>
+                <div id="unassignedTaskList" style="margin-top:15px; max-height:400px; overflow-y:auto; padding-right:5px;"></div>
+            </div>
+        </div>
+
+        <div class="search-box">
+            <input type="text" id="searchKeyword" placeholder="상호명, 사업자번호, 대표자명 검색" onkeypress="if(event.keyCode==13) search()">
+            <button class="btn-primary" onclick="search()">검색</button>
+        </div>
+
+        <div class="card">
+            <h3>📋 가맹점 리스트 (최신 작업순)</h3>
+            <table>
+                <thead>
+                    <tr><th>상호명</th><th>대표자명</th><th>연락처</th><th>주소</th><th>관리</th></tr>
+                </thead>
+                <tbody id="resultBody"></tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="floating-container">
+        <button class="float-btn btn-phone" onclick="openPhoneModal()">📞</button>
+        <button class="float-btn btn-bot" onclick="alert('AI 챗봇 서비스 준비 중입니다.')">🤖</button>
+    </div>
+
+    <div id="phoneModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-btn" onclick="document.getElementById('phoneModal').style.display='none'">✖</button>
+            <h3 style="margin-top:0;">📞 수·발신 통화 내역</h3>
+            <div id="callListContainer"></div>
+        </div>
+    </div>
+
+    <div id="routeAddrModal" class="modal-overlay">
+        <div class="modal-content" style="width: 450px; text-align:center;">
+            <button class="close-btn" onclick="document.getElementById('routeAddrModal').style.display='none'">✖</button>
+            <h3 style="margin-top:0;">📍 목적지 주소 선택</h3>
+            <p style="color:#64748b; font-size:14px; margin-bottom:20px;">경로에 추가할 주소를 선택해주세요.</p>
+            <div id="routeAddrChoices" style="display:flex; flex-direction:column; gap:10px;"></div>
+        </div>
+    </div>
+
+    <script>
+        const TMAP_APP_KEY = "YOUR_TMAP_APP_KEY";
+        let map;
+        let resultdrawArr = [];
+        let routes = JSON.parse(localStorage.getItem('posRoutes') || '[]');
+
+        function initTmap() {
+            map = new Tmapv2.Map("map_div", {
+                center: new Tmapv2.LatLng(37.5665, 126.9780),
+                width: "100%", height: "100%", zoom: 12, zoomControl: true, scrollwheel: true
+            });
+        }
+
+        function getShortAddress(addr) { return addr ? addr.split(' ').slice(0,3).join(' ') : ''; }
+        function renderRoutes() {
+            const container = document.getElementById('routeList');
+            document.getElementById('routeCount').innerText = routes.length;
+            container.innerHTML = '';
+            routes.forEach((r, idx) => {
+                container.innerHTML += `
+                    <div class="route-item">
+                        <div class="route-name" onclick="location.href='/register?id=${r.id}'">${idx + 1}. ${r.name}</div>
+                        <div class="route-addr">${getShortAddress(r.addr)}</div>
+                        <div class="route-controls">
+                            <button onclick="moveRoute(${idx}, -1)">🔼</button>
+                            <button onclick="moveRoute(${idx}, 1)">🔽</button>
+                            <button onclick="removeRoute(${idx})">✖</button>
+                        </div>
+                    </div>`;
+            });
+            localStorage.setItem('posRoutes', JSON.stringify(routes));
+        }
+        function moveRoute(idx, dir) { if(idx + dir < 0 || idx + dir >= routes.length) return; const temp = routes[idx]; routes[idx] = routes[idx + dir]; routes[idx + dir] = temp; renderRoutes(); }
+        function removeRoute(idx) { routes.splice(idx, 1); renderRoutes(); }
+        function clearRoutes() { 
+            routes = []; renderRoutes(); 
+            document.getElementById('apiResultBox').style.display = 'none'; 
+            document.getElementById('map_wrap').style.display = 'none';
+        }
+
+        // ✅ TMAP 강력 지오코딩 3단계 (실패 시 상호명으로 강제 검색)
+        async function geocode(address, name) {
+            let cleanAddr = address.split(',')[0].trim().replace(/\([^)]*\)/g, '').replace(/\d+층/g, '').replace(/지하/g, '').replace(/상가/g, '').trim();
+            const headers = { "appKey": TMAP_APP_KEY };
+
+            try {
+                const res = await fetch(`https://apis.openapi.sk.com/tmap/geo/fullAddrGeo?version=1&format=json&coordType=WGS84GEO&fullAddr=${encodeURIComponent(cleanAddr)}`, { headers });
+                const data = await res.json();
+                if(data.coordinateInfo && data.coordinateInfo.coordinate.length > 0) return { lon: data.coordinateInfo.coordinate[0].newLon, lat: data.coordinateInfo.coordinate[0].newLat };
+            } catch(e) {}
+
+            try {
+                let simplerAddr = cleanAddr.replace(/\s+[a-zA-Z0-9가-힣]+$/, '').trim(); 
+                const res2 = await fetch(`https://apis.openapi.sk.com/tmap/geo/fullAddrGeo?version=1&format=json&coordType=WGS84GEO&fullAddr=${encodeURIComponent(simplerAddr)}`, { headers });
+                const data2 = await res2.json();
+                if(data2.coordinateInfo && data2.coordinateInfo.coordinate.length > 0) return { lon: data2.coordinateInfo.coordinate[0].newLon, lat: data2.coordinateInfo.coordinate[0].newLat };
+            } catch(e) {}
+
+            try {
+                const keyword = name ? name : cleanAddr;
+                const poiRes = await fetch(`https://apis.openapi.sk.com/tmap/pois?version=1&format=json&searchKeyword=${encodeURIComponent(keyword)}&resCoordType=WGS84GEO&reqCoordType=WGS84GEO&count=1`, { headers });
+                const poiData = await poiRes.json();
+                if(poiData.searchPoiInfo && poiData.searchPoiInfo.pois && poiData.searchPoiInfo.pois.poi.length > 0) {
+                    const poi = poiData.searchPoiInfo.pois.poi[0];
+                    return { lon: poi.frontLon || poi.noorLon, lat: poi.frontLat || poi.noorLat };
+                }
+            } catch(e) {}
+
+            throw new Error(`좌표 변환 실패: ${cleanAddr}`);
+        }
+
+        async function executeTmapNavi() {
+            if(routes.length === 0) { alert('경로를 먼저 추가해주세요.'); return; }
+            try {
+                const dest = routes[routes.length - 1];
+                const destCoord = await geocode(dest.addr, dest.name);
+                let url = `tmap://route?goalname=${encodeURIComponent(dest.name)}&goalx=${destCoord.lon}&goaly=${destCoord.lat}`;
+
+                if(routes.length > 1) {
+                    const p1 = routes[0]; const p1Coord = await geocode(p1.addr, p1.name);
+                    url += `&pass1name=${encodeURIComponent(p1.name)}&pass1x=${p1Coord.lon}&pass1y=${p1Coord.lat}`;
+                }
+                if(routes.length > 2) {
+                    const p2 = routes[1]; const p2Coord = await geocode(p2.addr, p2.name);
+                    url += `&pass2name=${encodeURIComponent(p2.name)}&pass2x=${p2Coord.lon}&pass2y=${p2Coord.lat}`;
+                }
+
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if(isMobile) { window.location.href = url; } 
+                else { navigator.clipboard.writeText(url).then(() => { alert('✅ PC 클립보드에 T맵 앱 링크 복사 완료!'); }).catch(err => { prompt('링크 복사:', url); }); }
+            } catch (e) {
+                // 좌표 실패 시 상호명 텍스트로 앱 호출 유도
+                const fallbackUrl = `tmap://search?name=${encodeURIComponent(routes[routes.length - 1].name)}`;
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if(isMobile) { window.location.href = fallbackUrl; }
+                else { navigator.clipboard.writeText(fallbackUrl).then(() => { alert('명칭 검색 링크 복사됨'); }); }
+            }
+        }
+
+        async function calculateTmapApi() {
+            if(routes.length === 0) { alert('경로를 추가해주세요.'); return; }
+            const box = document.getElementById('apiResultBox');
+            box.style.display = 'block'; box.innerHTML = '🔄 Tmap 서버 연동 및 지도 그리는 중...';
+            document.getElementById('map_wrap').style.display = 'block';
+
+            if(resultdrawArr.length > 0) {
+                for(let i=0; i<resultdrawArr.length; i++) resultdrawArr[i].setMap(null);
+                resultdrawArr = [];
+            }
+
+            try {
+                const startCoord = await geocode("서울 중구 세종대로 110", "본사");
+                const end = routes[routes.length - 1];
+                const endCoord = await geocode(end.addr, end.name);
+
+                let passListStr = "";
+                if(routes.length > 1) {
+                    let passCoords = [];
+                    for(let i=0; i < routes.length - 1; i++) {
+                        const p = routes[i];
+                        const coord = await geocode(p.addr, p.name);
+                        if(coord) passCoords.push(`${coord.lon},${coord.lat}`);
+                    }
+                    passListStr = passCoords.join('_');
+                }
+
+                const params = new URLSearchParams();
+                params.append("startX", startCoord.lon); params.append("startY", startCoord.lat);
+                params.append("endX", endCoord.lon); params.append("endY", endCoord.lat);
+                params.append("reqCoordType", "WGS84GEO"); params.append("resCoordType", "EPSG3857");
+                params.append("searchOption", "0"); params.append("trafficInfo", "N");
+                if(passListStr) params.append("passList", passListStr);
+
+                const routeRes = await fetch(`https://apis.openapi.sk.com/tmap/routes?version=1&format=json&appKey=${TMAP_APP_KEY}`, {
+                    method: 'POST', headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: params
+                });
+                
+                if(!routeRes.ok) throw new Error("API 통신 에러");
+
+                const routeData = await routeRes.json();
+                const totalInfo = routeData.features[0].properties;
+                const timeMin = Math.round(totalInfo.totalTime / 60);
+                const distKm = (totalInfo.totalDistance / 1000).toFixed(1);
+                const fare = totalInfo.totalFare.toLocaleString();
+
+                box.innerHTML = `
+                    <div style="margin-bottom:5px;">🚩 출발: 본사</div>
+                    <div style="margin-bottom:10px;">🏁 도착: ${end.name}</div>
+                    총 소요 시간: <span class="api-val">${timeMin} 분</span><br>
+                    총 이동 거리: <span class="api-val">${distKm} km</span><br>
+                    예상 통행료: <span class="api-val">${fare} 원</span>
+                `;
+
+                let drawInfoArr = [];
+                let positionBounds = new Tmapv2.LatLngBounds();
+                
+                routeData.features.forEach(feature => {
+                    if (feature.geometry.type === "LineString") {
+                        feature.geometry.coordinates.forEach(coord => {
+                            let latlng = new Tmapv2.Point(coord[0], coord[1]);
+                            let convertPoint = new Tmapv2.Projection.convertEPSG3857ToWGS84GEO(latlng);
+                            let finalLatLng = new Tmapv2.LatLng(convertPoint._lat, convertPoint._lng);
+                            drawInfoArr.push(finalLatLng);
+                            positionBounds.extend(finalLatLng);
+                        });
+                    }
+                });
+
+                let polyline = new Tmapv2.Polyline({ path: drawInfoArr, strokeColor: "#DD0000", strokeWeight: 6, map: map });
+                resultdrawArr.push(polyline);
+                map.panToBounds(positionBounds); map.zoomOut();
+            } catch(e) { box.innerHTML = `<span style="color:#ef4444;">❌ 통신 에러 (API 오류)</span>`; }
+        }
+
+        function loadMyTasks() {
+            const myContainer = document.getElementById('myTaskList');
+            const unContainer = document.getElementById('unassignedTaskList');
+            fetch(`/api/pending_tasks?worker=오혜성`)
+            .then(res => res.json())
+            .then(data => {
+                myContainer.innerHTML = ''; unContainer.innerHTML = '';
+                
+                if(data.my_tasks.length === 0) myContainer.innerHTML = '<div style="padding:15px; color:#64748b; font-size:14px;">예정된 업무가 없습니다.</div>';
+                data.my_tasks.forEach(task => {
+                    myContainer.innerHTML += `
+                        <div class="task-item">
+                            <div style="display:flex; justify-content:space-between; align-items:center;" onclick="location.href='/register?id=${task.merchant_id}&highlight_idx=${task.history_idx}#history'">
+                                <div><span class="task-badge">예정</span><span style="font-weight:bold; color:#1e293b; font-size:16px;">${task.store_name}</span></div>
+                                <div style="font-size:12px; color:#94a3b8;">📅 ${task.date||'미정'}</div>
+                            </div>
+                            <div style="font-size:14px; color:#3b82f6; margin-top:8px;">🏷️ [${task.category}] ${task.content}</div>
+                            <button type="button" class="btn-process" onclick="location.href='/register?id=${task.merchant_id}&process_idx=${task.history_idx}#history'">▶ 처리 완료하기</button>
+                        </div>`;
+                });
+
+                if(data.unassigned_tasks.length === 0) unContainer.innerHTML = '<div style="padding:15px; color:#64748b; font-size:14px;">미지정 업무가 없습니다.</div>';
+                data.unassigned_tasks.forEach(task => {
+                    unContainer.innerHTML += `
+                        <div class="task-item">
+                            <div style="display:flex; justify-content:space-between; align-items:center;" onclick="location.href='/register?id=${task.merchant_id}&highlight_idx=${task.history_idx}#history'">
+                                <div><span class="task-badge-unassigned">미지정</span><span style="font-weight:bold; color:#1e293b; font-size:16px;">${task.store_name}</span></div>
+                                <div style="font-size:12px; color:#94a3b8;">📅 ${task.date||'미정'}</div>
+                            </div>
+                            <div style="font-size:14px; color:#3b82f6; margin-top:8px;">🏷️ [${task.category}] ${task.content}</div>
+                            <button type="button" class="btn-process" onclick="location.href='/register?id=${task.merchant_id}&process_idx=${task.history_idx}#history'">▶ 처리 완료하기 (담당자 지정)</button>
+                        </div>`;
+                });
+            });
+        }
+
+        // ✅ 복수 주소 선택 모달 호출 함수
+        function promptRouteAdd(id, name, biz_addr, addrsJsonStr) {
+            const addrs = JSON.parse(decodeURIComponent(addrsJsonStr) || '[]');
+            if(addrs.length === 0) {
+                // 추가 주소 없으면 바로 추가
+                routes.push({id, name, addr: biz_addr}); renderRoutes(); alert(`[${name}] 경로가 추가되었습니다.`);
+                return;
+            }
+            
+            const container = document.getElementById('routeAddrChoices');
+            container.innerHTML = `<button class="btn-process" style="margin-bottom:5px; background:#1e293b;" onclick="addRouteDirect('${id}', '${name}', '${biz_addr}')">[사업자상 주소] ${biz_addr}</button>`;
+            
+            addrs.forEach(a => {
+                const typeName = a.type === '기타' ? a.type_other : a.type;
+                const fullAddr = (a.main + " " + a.detail).trim();
+                container.innerHTML += `<button class="btn-process" style="margin-bottom:5px; background:#3b82f6;" onclick="addRouteDirect('${id}', '${name}', '${fullAddr}')">[${typeName}] ${fullAddr}</button>`;
+            });
+            document.getElementById('routeAddrModal').style.display = 'flex';
+        }
+
+        function addRouteDirect(id, name, addr) {
+            routes.push({id, name, addr}); renderRoutes();
+            document.getElementById('routeAddrModal').style.display = 'none';
+        }
+
+        function search() {
+            const keyword = document.getElementById('searchKeyword').value;
+            fetch(`/api/search?keyword=${keyword}`).then(res => res.json()).then(data => {
+                const tbody = document.getElementById('resultBody');
+                tbody.innerHTML = '';
+                data.forEach(item => {
+                    const tr = document.createElement('tr');
+                    tr.ondblclick = () => location.href = `/register?id=${item.id}`;
+                    tr.innerHTML = `
+                        <td style="font-weight:bold; color:#2563eb; cursor:pointer;" onclick="location.href='/register?id=${item.id}'">${item.store_name}</td>
+                        <td>${item.owner_name}</td>
+                        <td>${item.phone}</td>
+                        <td style="font-size:13px;">${item.address}</td>
+                        <td><button class="btn-add-route" onclick="event.stopPropagation(); promptRouteAdd('${item.id}', '${item.store_name}', '${item.address}', encodeURIComponent('${item.additional_addresses}'))">📍 경로추가</button></td>
+                    `;
+                    tbody.appendChild(tr);
+                });
+            });
+        }
+        
+        const mockCalls = [ { phone: '010-1111-1111', status: 'active', time: '통화중' }, { phone: '010-9999-8888', status: 'missed', time: '10분 전' }, { phone: '02-123-4567', status: 'ended', time: '1시간 전' } ];
+        function openPhoneModal() {
+            document.getElementById('phoneModal').style.display = 'flex';
+            const container = document.getElementById('callListContainer');
+            container.innerHTML = '<p>조회 중...</p>';
+            Promise.all(mockCalls.map(c => fetch(`/api/find_by_phone?phone=${c.phone}`).then(r => r.json()).catch(() => ({}))))
+            .then(results => {
+                let html = '';
+                results.forEach((dbResult, i) => {
+                    const call = mockCalls[i]; const isActive = call.status === 'active';
+                    const pulseHtml = isActive ? '<span class="pulse"></span>' : '';
+                    html += `<div class="call-item ${isActive ? 'call-active' : ''}">
+                        <div style="font-weight:bold; font-size:16px;">${pulseHtml}📞 ${call.phone} <span style="font-size:12px; color:gray; font-weight:normal;">(${call.time})</span></div>`;
+                    if (dbResult && dbResult.matches && dbResult.matches.length > 0) {
+                        dbResult.matches.forEach(match => {
+                            html += `
+                            <div style="background: white; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; margin-top: 10px;">
+                                <div style="color:#2563eb; font-size:14px; margin-bottom:5px;">🏪 <b>[${match.role}]</b> ${match.store_name}</div>
+                                <div class="action-row"><button class="btn-go" onclick="location.href='/register?id=${match.id}'">📂 상세</button>
+                                <button class="btn-hist" onclick="location.href='/register?id=${match.id}#history'">📝 이력</button></div></div>`;
+                        });
+                        html += `</div>`;
+                    } else {
+                        html += `<div style="color:#ef4444; font-size:14px; margin-top:5px;">❌ 미등록 번호</div>
+                            <div class="action-row"><button class="btn-new" onclick="location.href='/register?phone=${call.phone}'">➕ 신규 등록</button></div></div>`;
+                    }
+                });
+                container.innerHTML = html;
+            });
+        }
+
+        window.onload = function() { renderRoutes(); search(); loadMyTasks(); };
+    </script>
+</body>
+</html>

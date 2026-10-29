@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>전체 작업 이력 - POS Manager</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+    <style>
+        body { font-family: 'Pretendard', sans-serif; display: flex; margin: 0; background-color: #f1f5f9; height: 100vh; overflow: hidden; }
+        .sidebar { width: 330px; background: white; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; flex-shrink: 0; }
+        .sidebar h2 { margin: 0 0 20px 0; color: #0f172a; font-size: 20px; }
+        .sidebar-btn { width: 100%; padding: 12px; margin-bottom: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; }
+        .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; box-sizing: border-box; }
+        
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+        h1 { color: #0f172a; margin: 0; font-size: 22px; }
+        .btn-add { background: #3b82f6; color: white; padding: 12px 20px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; font-size:15px; }
+        
+        .work-action-box { background: white; padding: 15px; border-radius: 8px; border: 1px solid #e2e8f0; margin-bottom: 10px; cursor: pointer; transition: 0.2s; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+        .work-action-box:hover { border-color: #3b82f6; background: #f8fafc; }
+        
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 600px; padding: 25px; border-radius: 16px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 80vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; }
+        
+        .search-box { display: flex; gap: 10px; margin-bottom: 20px; }
+        .search-box input { flex-grow: 1; padding: 14px; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 16px; outline: none; }
+        .btn-primary { background: #3b82f6; color: white; padding: 14px 20px; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; }
+        
+        .search-result-item { padding: 15px; border-bottom: 1px solid #e2e8f0; display:flex; justify-content: space-between; align-items: center; }
+        .search-result-item:hover { background: #f1f5f9; }
+    </style>
+</head>
+<body>
+    <div class="sidebar">
+        <h2>🏢 POS Manager</h2>
+        <button class="sidebar-btn" onclick="location.href='/'">🏠 메인 대시보드</button>
+        <button class="sidebar-btn" onclick="location.href='/register'">📝 신규 가맹점 등록</button>
+        <button class="sidebar-btn" style="background:#e0f2fe; color:#0369a1; border-color:#bae6fd;" onclick="location.href='/history'">📋 전체 작업 이력</button>
+    </div>
+
+    <div class="main-content">
+        <div class="header">
+            <h1>📋 전체 가맹점 작업 이력</h1>
+            <button type="button" class="btn-add" onclick="openSearchModal()">📝 신규 작업/이력 추가</button>
+        </div>
+        
+        <div id="allHistoryList">
+            <p style="color:#64748b;">이력을 불러오는 중입니다...</p>
+        </div>
+    </div>
+
+    <div id="searchModal" class="modal-overlay">
+        <div class="modal-content">
+            <button class="close-btn" onclick="document.getElementById('searchModal').style.display='none'">✖</button>
+            <h3 style="margin-top:0;">🔍 가맹점 검색 (작업 추가)</h3>
+            <div class="search-box">
+                <input type="text" id="keyword" placeholder="상호명, 사업자번호 입력" onkeypress="if(event.keyCode==13) searchMerchant()">
+                <button class="btn-primary" onclick="searchMerchant()">검색</button>
+            </div>
+            <div id="searchResults" style="border:1px solid #e2e8f0; border-radius:8px; max-height:300px; overflow-y:auto;">
+                <div style="padding:15px; color:#64748b; font-size:14px; text-align:center;">검색어를 입력해주세요.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        window.onload = function() {
+            fetch('/api/all_history')
+            .then(res => res.json())
+            .then(data => {
+                const container = document.getElementById('allHistoryList');
+                container.innerHTML = '';
+                if(data.length === 0) {
+                    container.innerHTML = '<p style="color:#64748b;">등록된 이력이 없습니다.</p>';
+                    return;
+                }
+                
+                data.forEach(h => {
+                    const statusBadge = h.status === '예정' ? `<span style="background:#f59e0b; color:white; padding:2px 6px; border-radius:4px; font-size:12px;">예정</span>` : `<span style="background:#10b981; color:white; padding:2px 6px; border-radius:4px; font-size:12px;">완료</span>`;
+                    
+                    container.innerHTML += `
+                        <div class="work-action-box" onclick="location.href='/register?id=${h.merchant_id}&highlight_idx=${h.history_idx}#history'">
+                            <div style="display:flex; justify-content:space-between;">
+                                <div style="font-size:14px; color:#64748b;">
+                                    ${statusBadge} <b style="color:#0f172a; font-size:15px; margin:0 8px;">${h.store_name}</b> | 📅 ${h.date||'미정'} | 👷 ${h.worker||'미지정'} | 🏷️ ${h.category}
+                                </div>
+                            </div>
+                            <div style="font-weight:bold; font-size:15px; margin-top:8px; white-space:pre-line; color:#1e293b;">${h.content}</div>
+                        </div>
+                    `;
+                });
+            });
+        };
+
+        function openSearchModal() {
+            document.getElementById('keyword').value = '';
+            document.getElementById('searchResults').innerHTML = '<div style="padding:15px; color:#64748b; font-size:14px; text-align:center;">검색어를 입력해주세요.</div>';
+            document.getElementById('searchModal').style.display = 'flex';
+        }
+
+        // ✅ 검색 후 작업 추가(다이렉트) 연결
+        function searchMerchant() {
+            const keyword = document.getElementById('keyword').value;
+            const container = document.getElementById('searchResults');
+            container.innerHTML = '<div style="padding:15px; color:#64748b; font-size:14px; text-align:center;">검색 중...</div>';
+            
+            fetch(`/api/search?keyword=${keyword}`).then(res => res.json()).then(data => {
+                container.innerHTML = '';
+                if(data.length === 0) {
+                    container.innerHTML = '<div style="padding:15px; color:#ef4444; font-size:14px; text-align:center;">검색 결과가 없습니다.</div>';
+                    return;
+                }
+                data.forEach(item => {
+                    container.innerHTML += `
+                        <div class="search-result-item">
+                            <div>
+                                <b style="color:#2563eb; font-size:15px;">${item.store_name}</b> <span style="font-size:13px; color:#64748b; margin-left:10px;">${item.owner_name} | ${item.phone}</span>
+                            </div>
+                            <button class="btn-primary" style="padding:6px 12px; font-size:13px;" onclick="location.href='/register?id=${item.id}&open_work_modal=true'">선택</button>
+                        </div>
+                    `;
+                });
+            });
+        }
+    </script>
+</body>
+</html>

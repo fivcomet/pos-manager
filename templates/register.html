@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>가맹점 등록 및 수정</title>
+    <link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.8/dist/web/static/pretendard.css" />
+    <script src="https://apis.openapi.sk.com/tmap/jsv2?version=1&appKey=YOUR_TMAP_APP_KEY"></script>
+    <style>
+        body { font-family: 'Pretendard', sans-serif; display: flex; margin: 0; background-color: #f1f5f9; height: 100vh; overflow: hidden; }
+        .sidebar { width: 330px; background: white; border-right: 1px solid #e2e8f0; display: flex; flex-direction: column; padding: 20px; box-sizing: border-box; overflow-y: auto; flex-shrink: 0; }
+        .sidebar h2 { margin: 0 0 20px 0; color: #0f172a; font-size: 20px; }
+        .sidebar-btn { width: 100%; padding: 12px; margin-bottom: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 15px; }
+        .route-title { margin: 20px 0 10px 0; font-size: 16px; font-weight: bold; color: #334155; }
+        .route-item { padding: 8px; border: 1px solid #e2e8f0; border-radius: 6px; margin-bottom: 5px; background: #ffffff; box-shadow: 0 1px 2px rgba(0,0,0,0.05); }
+        .route-name { font-weight: bold; font-size: 14px; color: #2563eb; cursor: pointer; }
+        .route-addr { font-size: 12px; color: #94a3b8; }
+        .route-controls { display: flex; justify-content: flex-end; gap: 4px; margin-top: 5px; }
+        .route-controls button { padding: 2px 6px; font-size: 12px; border: 1px solid #cbd5e1; background: white; border-radius: 4px; cursor: pointer; }
+        .btn-navi { background: #111827; color: white; border: none; padding: 12px; width: 100%; border-radius: 8px; font-weight: bold; cursor: pointer; margin-top: 15px; }
+        
+        .api-result-box { background: #e0f2fe; padding: 15px; border-radius: 8px; margin-top: 10px; display: none; font-size: 14px; color: #0f172a; border: 1px solid #bae6fd; line-height: 1.5; }
+        .api-val { font-weight: bold; color: #0369a1; font-size: 16px; }
+
+        .main-content { flex-grow: 1; padding: 30px; overflow-y: auto; box-sizing: border-box; scroll-behavior: smooth; }
+        .container { max-width: 1100px; margin: auto; background: white; padding: 30px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.05); }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; border-bottom: 2px solid #e2e8f0; padding-bottom: 15px; }
+        h1 { color: #0f172a; margin: 0; font-size: 22px; }
+        
+        .tabs { display: flex; border-bottom: 2px solid #e2e8f0; margin-bottom: 20px; flex-wrap: wrap; }
+        .tab-btn { padding: 12px 20px; font-size: 16px; font-weight: bold; color: #64748b; background: none; border: none; border-bottom: 3px solid transparent; cursor: pointer; outline: none; }
+        .tab-btn.active { color: #3b82f6; border-bottom: 3px solid #3b82f6; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: fadeIn 0.3s ease; }
+
+        .section { background: #f8fafc; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px; margin-bottom: 20px; }
+        input[type="text"], input[type="number"], select, input[type="date"], textarea { font-family: 'Pretendard', sans-serif; font-size: 14px; padding: 8px; margin: 4px; border: 1px solid #cbd5e1; border-radius: 6px; outline: none; box-sizing: border-box; }
+        .custom-input { display: none; background-color: #fffbeb; }
+        button { font-family: 'Pretendard', sans-serif; font-size: 13px; padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+        .btn-back { background: #e2e8f0; color: #475569; }
+        .btn-add { background: #3b82f6; color: white; margin-top: 10px; }
+        .btn-del { background: #ef4444; color: white; padding: 4px 8px; font-size: 12px; margin-left: auto; }
+        .btn-top-save { background: #10b981; color: white; padding: 10px 20px; font-size: 15px; margin-right: 10px; }
+        .flex-row { display: flex; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 5px; }
+        
+        .floating-container { position: fixed; bottom: 30px; right: 30px; display: flex; flex-direction: column; gap: 15px; z-index: 100; }
+        .float-btn { width: 55px; height: 55px; border-radius: 50%; border: none; font-size: 24px; cursor: pointer; color: white; box-shadow: 0 4px 10px rgba(0,0,0,0.2); }
+        .btn-phone { background-color: #22c55e; }
+        .btn-bot { background-color: #3b82f6; }
+        
+        .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 999; justify-content: center; align-items: center; }
+        .modal-content { background: white; width: 750px; padding: 25px; border-radius: 16px; position: relative; box-shadow: 0 10px 25px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 15px; right: 15px; background: none; border: none; font-size: 20px; cursor: pointer; }
+        
+        .work-action-box { background: #f1f5f9; padding: 15px; border-radius: 8px; border: 1px solid #cbd5e1; margin-bottom: 10px; transition: 0.3s; }
+        .hist-img { max-width: 80px; max-height: 80px; border-radius: 6px; cursor: pointer; border: 1px solid #cbd5e1; display: inline-block; margin-top: 5px; margin-right: 5px; object-fit: cover;}
+        
+        .call-item { padding: 15px; border: 1px solid #e2e8f0; border-radius: 8px; margin-bottom: 10px; }
+        .call-active { border-color: #22c55e; background: #f0fdf4; }
+        .pulse { display: inline-block; width: 10px; height: 10px; background: #22c55e; border-radius: 50%; animation: pulse 1.5s infinite; margin-right: 5px; }
+        @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(34,197,94,0.7); } 70% { box-shadow: 0 0 0 10px rgba(34,197,94,0); } 100% { box-shadow: 0 0 0 0 rgba(34,197,94,0); } }
+        
+        /* ✅ 하이라이트 애니메이션 복구 */
+        @keyframes glow { 0% { box-shadow: 0 0 15px #10b981; border: 2px solid #10b981; } 100% { box-shadow: none; border: 1px solid #cbd5e1; } }
+        .highlight-glow { animation: glow 2s ease-out; }
+        
+        .eq-history-badge { background:#e2e8f0; color:#3b82f6; font-size:12px; padding:4px 8px; border-radius:6px; cursor:pointer; margin-left:10px; font-weight:bold; transition:0.2s;}
+        .eq-history-badge:hover { background:#cbd5e1; color:#1e40af; }
+
+        .action-row { display: flex; gap: 8px; margin-top: 10px; }
+        .action-row button { flex: 1; padding: 8px; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; color: white; }
+        .btn-go { background: #3b82f6; } .btn-hist { background: #8b5cf6; } .btn-new { background: #f59e0b; }
+        
+        .btn-process-huge { background: #10b981; color: white; border: none; padding: 6px 16px; border-radius: 6px; font-size: 13px; font-weight: bold; cursor: pointer; box-shadow: 0 2px 4px rgba(0,0,0,0.15); margin-left:10px; }
+        .btn-process-huge:hover { background: #059669; }
+    </style>
+</head>
+<body onload="initTmap()">
+
+    <div class="sidebar">
+        <h2>🏢 POS Manager</h2>
+        <button class="sidebar-btn" onclick="safeNavigate('/')">🏠 메인 대시보드</button>
+        <button class="sidebar-btn" onclick="safeNavigate('/register')">📝 신규 가맹점 등록</button>
+        <button class="sidebar-btn" onclick="safeNavigate('/history')">📋 전체 작업 이력</button>
+        <hr style="border:0; border-top:1px solid #e2e8f0; margin:15px 0; width:100%;">
+        
+        <div class="route-title">📍 목적지 경로 (<span id="routeCount">0</span>곳)</div>
+        <div id="routeList"></div>
+        <button class="btn-navi" style="background:#1e3a8a;" onclick="calculateTmapApi()">🛰️ T맵 API 길찾기 (PC지도 표출)</button>
+        <div id="apiResultBox" class="api-result-box"></div>
+        
+        <div id="map_wrap" style="display:none; width:100%; height:200px; margin-top:10px; border-radius:8px; overflow:hidden; border:1px solid #cbd5e1;">
+            <div id="map_div"></div>
+        </div>
+
+        <button class="btn-navi" onclick="executeTmapNavi()">📱 T맵 모바일 앱 열기 (폰 전용)</button>
+        <button class="btn-clear" style="background:#ef4444; color:white; width:100%; padding:10px; border:none; border-radius:8px; margin-top:5px; font-weight:bold; cursor:pointer;" onclick="clearRoutes()">🧹 경로 초기화</button>
+    </div>
+
+    <div class="main-content">
+        <div class="container">
+            <div class="header">
+                <h1 id="pageTitle">📝 가맹점 정보</h1>
+                <div>
+                    <button type="button" class="btn-top-save" onclick="saveData()">💾 저장</button>
+                    <button type="button" class="btn-back" onclick="safeNavigate('/')">◀ 목록으로</button>
+                </div>
+            </div>
+            
+            <div class="tabs">
+                <button type="button" class="tab-btn active" onclick="switchTab('basic', this)">기본 정보</button>
+                <button type="button" class="tab-btn" onclick="switchTab('cost', this)">비용 및 약정</button>
+                <button type="button" class="tab-btn" onclick="switchTab('equip', this)">장비 관리</button>
+                <button type="button" class="tab-btn" onclick="switchTab('history', this)">작업 이력</button>
+            </div>
+
+            <form id="merchantForm">
+                <input type="hidden" id="merchantId">
+
+                <div id="tab-basic" class="tab-content active section">
+                    <div class="flex-row">
+                        상호명: <input type="text" id="store_name" style="width: 250px;">
+                        사업자번호: <input type="text" id="biz_no" placeholder="숫자만 입력" oninput="autoHyphenBiz(this)" maxlength="12" style="width: 150px;">
+                    </div>
+                    <div class="flex-row">
+                        구분: <label><input type="radio" name="biz_type" value="개인" checked> 개인</label> <label><input type="radio" name="biz_type" value="법인"> 법인</label>
+                        <span style="color:#ccc; margin:0 10px;">|</span>
+                        과세: <label><input type="radio" name="tax_type" value="일반" checked> 일반</label> <label><input type="radio" name="tax_type" value="면세"> 면세</label> <label><input type="radio" name="tax_type" value="간이"> 간이</label>
+                    </div>
+                    
+                    <div class="flex-row">
+                        프랜차이즈: 
+                        <select id="franchise" onchange="checkOther(this)">
+                            <option value="">선택 안함</option><option value="프랜차이즈A">프랜차이즈A</option><option value="프랜차이즈B">프랜차이즈B</option><option value="프랜차이즈C">프랜차이즈C</option><option value="프랜차이즈D">프랜차이즈D</option><option value="프랜차이즈E">프랜차이즈E</option><option value="프랜차이즈F">프랜차이즈F</option><option value="프랜차이즈G">프랜차이즈G</option><option value="기타">기타</option>
+                        </select>
+                        <input type="text" id="franchise_other" class="custom-input" placeholder="직접 입력">
+                    </div>
+                    <div class="flex-row">
+                        VAN (중복가능): 
+                        <label><input type="checkbox" name="van" value="FD"> FD</label> <label><input type="checkbox" name="van" value="코밴"> 코밴</label> <label><input type="checkbox" name="van" value="금결"> 금결</label> <label><input type="checkbox" name="van" value="이지"> 이지</label> <label><input type="checkbox" name="van" value="토스"> 토스</label> <label><input type="checkbox" name="van" value="기타"> 기타</label>
+                    </div>
+                    <div class="flex-row">
+                        프로그램사 (중복가능): 
+                        <label><input type="checkbox" name="program" value="해당없음"> 해당없음</label> <label><input type="checkbox" name="program" value="유니온"> 유니온</label> <label><input type="checkbox" name="program" value="퍼스트포스"> 퍼스트포스</label> <label><input type="checkbox" name="program" value="아임유"> 아임유</label> <label><input type="checkbox" name="program" value="푸드테크"> 푸드테크</label> <label><input type="checkbox" name="program" value="메이트포스"> 메이트포스</label> <label><input type="checkbox" name="program" value="포스피드"> 포스피드</label> <label><input type="checkbox" name="program" value="이지"> 이지</label> 
+                        <label><input type="checkbox" name="program" value="기타" onchange="document.getElementById('program_other').style.display=this.checked?'inline-block':'none'"> 기타</label>
+                        <input type="text" id="program_other" class="custom-input" placeholder="직접 입력">
+                    </div>
+                    
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+
+                    <div class="flex-row">
+                        대표자명: <input type="text" id="owner_name" style="width: 120px;">
+                        대표 연락처: <input type="text" id="owner_phone" placeholder="숫자만" oninput="autoHyphenPhone(this)" style="width: 140px;">
+                        매장 전화번호: <input type="text" id="store_phone" placeholder="숫자만" oninput="autoHyphenPhone(this)" style="width: 140px;">
+                    </div>
+                    <div id="extraContactsList"></div>
+                    <button type="button" class="btn-add" onclick="addContact()">+ 기타 연락처 추가</button>
+                    
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 15px 0;">
+                    
+                    <div class="flex-row">
+                        사업자상 주소: 
+                        <input type="text" id="biz_address" style="width: 250px;" readonly> 
+                        <button type="button" class="btn-back" onclick="execDaumPostcode('biz_address', 'biz_address_detail')">검색</button>
+                        <input type="text" id="biz_address_detail" placeholder="상세주소" style="width: 200px;">
+                        <input type="text" id="biz_address_memo" placeholder="주소 비고 (예: 주차불가)" style="width: 180px; background:#f8fafc;">
+                    </div>
+                    
+                    <div id="additionalAddressList"></div>
+                    <button type="button" class="btn-add" style="background:#f59e0b;" onclick="addRealAddress()">+ 추가 주소(실제/기타) 등록</button>
+
+                    <div style="margin-top: 15px;">
+                        <textarea id="merchant_memo" placeholder="가맹점 메모 (특이사항 등)" style="width: 100%; height: 60px;"></textarea>
+                    </div>
+                </div>
+
+                <div id="tab-cost" class="tab-content section">
+                    <div style="display:flex; gap:20px; flex-wrap:wrap; margin-bottom:20px;">
+                        <div style="flex:1; min-width: 250px;">
+                            용지 지원: <label><input type="radio" name="paper_type" value="무상" checked> 무상</label> <label><input type="radio" name="paper_type" value="유상"> 유상</label><br><br>
+                            기본 대여료: 
+                            <select id="rental_fee_type" onchange="toggleCostAmount(this)">
+                                <option value="무상">무상</option><option value="구매가">구매가</option><option value="월 대여료">월 대여료</option>
+                            </select>
+                            <input type="text" id="rental_fee_amount" style="text-align:right; width:120px; display:none;" placeholder="금액(원)" oninput="formatMoney(this)"> 
+                        </div>
+                        <div style="flex:1; min-width: 250px; background:#f1f5f9; padding:15px; border-radius:8px; text-align:right;">
+                            기본 프로그램비: 
+                            <select id="program_fee_type" onchange="toggleCostAmount(this)">
+                                <option value="해당없음">해당없음</option><option value="무상">무상</option><option value="최초 유상">유상구매(최초)</option><option value="월 비용">CMS(월 비용)</option>
+                            </select><br>
+                            <input type="text" id="program_fee_amount" style="text-align:right; width:120px; display:none; margin-top:5px;" placeholder="금액(원)" oninput="formatMoney(this)"> 
+                        </div>
+                    </div>
+                    
+                    <hr style="border: 0; border-top: 1px dashed #cbd5e1; margin: 15px 0;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom:10px;">
+                        <h3 style="margin:0; font-size:16px; color:#0369a1;">📄 개별 약정 내역</h3>
+                        <button type="button" class="btn-add" style="margin:0; background:#0ea5e9;" onclick="addContract()">+ 약정 추가</button>
+                    </div>
+                    <div id="contractListContainer"></div>
+                </div>
+
+                <div id="tab-equip" class="tab-content section">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom:15px;">
+                        <h2 style="margin:0;">현재 보유 장비 목록</h2>
+                        <button type="button" class="btn-add" style="background: #8b5cf6; font-size:15px; padding:10px; margin:0;" onclick="openWorkModal('장비')">🛠️ 장비 변경 (설치/교체/해지)</button>
+                    </div>
+                    <div id="equipmentList"></div>
+                    <button type="button" class="btn-add" style="background: #e2e8f0; color:#334155; font-size:13px;" onclick="addEquipment()">+ 이력 없이 장비 텍스트만 추가 (초기 셋팅용)</button>
+                    
+                    <hr style="border: 0; border-top: 1px solid #e2e8f0; margin: 20px 0;">
+                    <h3 style="color:#64748b;">📋 관련 장비 변경 이력</h3>
+                    <div id="equipHistoryContainer"></div>
+                </div>
+
+                <div id="tab-history" class="tab-content section">
+                    <div style="display: flex; justify-content: flex-end; margin-bottom:15px;">
+                        <button type="button" class="btn-add" style="background: #3b82f6; font-size:15px; padding:10px; margin:0;" onclick="openWorkModal('일반')">📝 작업 추가</button>
+                    </div>
+                    <div id="historyList"></div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="floating-container">
+        <button class="float-btn btn-phone" onclick="openPhoneModal()">📞</button>
+        <button class="float-btn btn-bot" onclick="alert('AI 챗봇 서비스 준비 중입니다.')">🤖</button>
+    </div>
+
+    <div id="exitWarningModal" class="modal-overlay" style="z-index: 9999;">
+        <div class="modal-content" style="width: 400px; text-align: center;">
+            <h3 style="color: #ef4444; margin-top:0;">⚠️ 변경사항이 저장되지 않았습니다</h3>
+            <p style="color: #475569; font-size: 15px; line-height:1.5;">정말 저장하지 않고 이동하시겠습니까?</p>
+            <div style="display: flex; gap: 10px; justify-content: center; margin-top: 25px;">
+                <button type="button" style="background: #ef4444; color: white; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;" onclick="forceExit()">저장 안 하고 나가기</button>
+                <button type="button" style="background: #e2e8f0; color: #334155; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-weight: bold; flex: 1;" onclick="document.getElementById('exitWarningModal').style.display='none'">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="workModal" class="modal-overlay">
+        <div class="modal-content" style="width: 750px;">
+            <button class="close-btn" onclick="cancelWorkModal()">✖</button>
+            <h3 style="margin-top:0;" id="workModalTitle">📝 작업 등록</h3>
+            <input type="hidden" id="edit_history_idx" value="-1">
+            <input type="hidden" id="work_mode" value="일반">
+            
+            <div class="flex-row" id="work_status_row" style="background:#e0f2fe; padding:10px; border-radius:8px; margin-bottom:15px; border:1px solid #bae6fd;">
+                <span style="font-weight:bold; width:80px; color:#0369a1;">상태:</span>
+                <select id="work_status" style="font-weight:bold; color:#0f172a;" onchange="toggleWorkStatus()">
+                    <option value="완료">✅ 완료 (한 작업)</option>
+                    <option value="예정">⏳ 예정 (해야할 업무)</option>
+                </select>
+                <span style="font-size:12px; color:#ef4444; margin-left:10px;" id="status_warning">※ '완료' 시에만 장비 목록이 동기화됩니다.</span>
+            </div>
+
+            <div class="flex-row">
+                <span style="font-weight:bold; width:80px;">작업 일자:</span> <input type="date" id="work_date">
+                <span style="font-weight:bold; margin-left:10px;">담당자:</span> 
+                <select id="work_worker" style="width:100px;">
+                    <option value="">미지정</option>
+                    <option value="오혜성">오혜성</option>
+                    <option value="직원1">직원1</option>
+                    <option value="직원2">직원2</option>
+                    <option value="직원3">직원3</option>
+                </select>
+            </div>
+
+            <div class="flex-row" id="work_category_row" style="margin-top:10px;">
+                <span style="font-weight:bold; width:80px;">작업 분류:</span>
+                <select id="work_category" onchange="changeWorkCategory(this)">
+                    <option value="방문AS">방문AS</option>
+                    <option value="원격AS">원격AS</option>
+                    <option value="신규 가맹">신규 가맹</option>
+                    <option value="설치">설치</option>
+                    <option value="교체">교체</option>
+                    <option value="회수">회수</option>
+                    <option value="제신고">제신고</option>
+                    <option value="기타">기타 (직접입력)</option>
+                </select>
+                <input type="text" id="work_category_other" class="custom-input" placeholder="분류명 직접입력">
+            </div>
+
+            <div style="margin-top:15px; background:#f8fafc; padding:15px; border-radius:8px; border:1px solid #cbd5e1;">
+                <label style="font-weight:bold; cursor:pointer; color:#3b82f6;">
+                    📸 사진 업로드
+                    <input type="file" id="work_file" accept="image/*" multiple style="display:none;" onchange="uploadMultipleImages(this)">
+                </label>
+                <span id="work_upload_status" style="font-size:12px; margin-left:10px; color:#64748b;"></span>
+                <input type="hidden" id="work_img_urls">
+                <div id="work_img_preview_container" style="margin-top:10px; display:flex; gap:10px; flex-wrap:wrap;"></div>
+            </div>
+
+            <div style="margin-top:15px;">
+                <span style="font-weight:bold;">상세 메모:</span><br>
+                <textarea id="work_content" style="width:100%; height:60px;" placeholder="수기 메모만 여기에 작성/보관됩니다."></textarea>
+            </div>
+
+            <div id="workActionWrapper" style="display:none; margin-top:20px; border-top: 2px dashed #cbd5e1; padding-top: 15px;">
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
+                    <span style="font-weight:bold; color:#0f172a;">🛠️ 관련 장비 변경 (설치/교체/해지)</span>
+                    <button type="button" class="btn-add" style="margin:0; padding:6px 12px; font-size:13px;" onclick="addWorkActionRow()">+ 장비 추가</button>
+                </div>
+                <div id="workActionContainer"></div>
+            </div>
+
+            <button type="button" onclick="applyWorkRecord()" style="width:100%; margin-top:20px; padding:15px; font-size:16px; background:#10b981; color:white; border:none; border-radius:8px; font-weight:bold; cursor:pointer;">💾 저장</button>
+        </div>
+    </div>
+
+    <div id="phoneModal" class="modal-overlay">
+        <div class="modal-content" style="width: 500px;">
+            <button class="close-btn" onclick="document.getElementById('phoneModal').style.display='none'">✖</button>
+            <h3 style="margin-top:0;">📞 수·발신 통화 내역</h3>
+            <div id="callListContainer"></div>
+        </div>
+    </div>
+
+    <script>
+        const TMAP_APP_KEY = "YOUR_TMAP_APP_KEY";
+        let map;
+        let resultdrawArr = [];
+
+        function initTmap() {
+            map = new Tmapv2.Map("map_div", {
+                center: new Tmapv2.LatLng(37.5665, 126.9780),
+                width: "100%", height: "100%", zoom: 12, zoomControl: true, scrollwheel: true
+            });
+        }
+
+        let isFormModified = false;
+        let pendingTargetUrl = null;
+        
+        document.getElementById('merchantForm').addEventListener('change', () => { isFormModified = true; });
+        document.getElementById('merchantForm').addEventListener('input', () => { isFormModified = true; });
+
+        const beforeUnloadHandler = function (e) {
+            if (isFormModified) { e.preventDefault(); e.returnValue = ''; }
+        };
+        window.addEventListener('beforeunload', beforeUnloadHandler);
+
+        function safeNavigate(url) {
+            if (isFormModified) {
+                pendingTargetUrl = url;
+                document.getElementById('exitWarningModal').style.display = 'flex';
+            } else { location.href = url; }
+        }
+        function forceExit() {
+            isFormModified = false; 
+            window.removeEventListener('beforeunload', beforeUnloadHandler);
+            location.href = pendingTargetUrl;
+        }
+
+        function switchTab(tabId, btnElement) {
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            document.getElementById('tab-' + tabId).classList.add('active');
+            if(btnElement) btnElement.classList.add('active');
+            else document.querySelector(`.tab-btn[onclick*="${tabId}"]`).classList.add('active');
+        }
+
+        let routes = JSON.parse(localStorage.getItem('posRoutes') || '[]');
+        function getShortAddress(addr) { return addr ? addr.split(' ').slice(0,3).join(' ') : ''; }
+        function renderRoutes() {
+            const container = document.getElementById('routeList');
+            document.getElementById('routeCount').innerText = routes.length;
+            container.innerHTML = '';
+            routes.forEach((r, idx) => {
+                container.innerHTML += `
+                    <div class="route-item">
+                        <div class="route-name" onclick="safeNavigate('/register?id=${r.id}')">${idx + 1}. ${r.name}</div>
+                        <div class="route-addr">${getShortAddress(r.addr)}</div>
+                        <div class="route-controls">
+                            <button type="button" onclick="moveRoute(${idx}, -1)">🔼</button>
+                            <button type="button" onclick="moveRoute(${idx}, 1)">🔽</button>
+                            <button type="button" onclick="removeRoute(${idx})">✖</button>
+                        </div>
+                    </div>`;
+            });
+            localStorage.setItem('posRoutes', JSON.stringify(routes));
+        }
+        function moveRoute(idx, dir) { if(idx + dir < 0 || idx + dir >= routes.length) return; const temp = routes[idx]; routes[idx] = routes[idx + dir]; routes[idx + dir] = temp; renderRoutes(); }
+        function removeRoute(idx) { routes.splice(idx, 1); renderRoutes(); }
+        function clearRoutes() { 
+            routes = []; renderRoutes(); 
+            document.getElementById('apiResultBox').style.display = 'none'; 
+            document.getElementById('map_wrap').style.display = 'none';
+        }
+
+        async function geocodeNative(address) {
+            return new Promise((resolve, reject) => {
+                let cleanAddr = address.split(',')[0].trim();
+                cleanAddr = cleanAddr.replace(/\([^)]*\)/g, '').replace(/\d+층/g, '').replace(/지하/g, '').replace(/상가/g, '').trim();
+
+                var tData = new Tmapv2.extension.TData();
+                var optionObj = { coordType: "WGS84GEO" };
+                
+                var params = {
+                    onComplete: function(result) {
+                        if(result._responseData.coordinateInfo && result._responseData.coordinateInfo.coordinate.length > 0) {
+                           resolve({ lon: result._responseData.coordinateInfo.coordinate[0].newLon, lat: result._responseData.coordinateInfo.coordinate[0].newLat });
+                        } else { reject(); }
+                    }, onError: function() { reject(); }
+                };
+
+                var paramsPOI = {
+                    onComplete: function(result) {
+                        if(result._responseData.searchPoiInfo && result._responseData.searchPoiInfo.pois && result._responseData.searchPoiInfo.pois.poi.length > 0) {
+                            const poi = result._responseData.searchPoiInfo.pois.poi[0];
+                            resolve({ lon: poi.frontLon || poi.noorLon, lat: poi.frontLat || poi.noorLat });
+                        } else { tData.getGeoFromAddressJson(cleanAddr, optionObj, params); }
+                    },
+                    onError: function() { tData.getGeoFromAddressJson(cleanAddr, optionObj, params); }
+                };
+                tData.getPOIDataFromSearchJson(cleanAddr, {resCoordType: "WGS84GEO", reqCoordType: "WGS84GEO", count:1}, paramsPOI);
+            });
+        }
+
+        async function executeTmapNavi() {
+            if(routes.length === 0) { alert('경로를 먼저 추가해주세요.'); return; }
+            try {
+                const destCoord = await geocodeNative(routes[routes.length - 1].addr);
+                let url = `tmap://route?goalname=${encodeURIComponent(routes[routes.length - 1].name)}&goalx=${destCoord.lon}&goaly=${destCoord.lat}`;
+
+                if(routes.length > 1) {
+                    const p1Coord = await geocodeNative(routes[0].addr);
+                    url += `&pass1name=${encodeURIComponent(routes[0].name)}&pass1x=${p1Coord.lon}&pass1y=${p1Coord.lat}`;
+                }
+                if(routes.length > 2) {
+                    const p2Coord = await geocodeNative(routes[1].addr);
+                    url += `&pass2name=${encodeURIComponent(routes[1].name)}&pass2x=${p2Coord.lon}&pass2y=${p2Coord.lat}`;
+                }
+
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if(isMobile) { window.location.href = url; } 
+                else {
+                    navigator.clipboard.writeText(url).then(() => { alert('✅ 클립보드에 T맵 앱 전용 링크 복사 완료!'); }).catch(err => { prompt('링크 복사:', url); });
+                }
+            } catch (e) {
+                const fallbackUrl = `tmap://search?name=${encodeURIComponent(routes[routes.length - 1].name)}`;
+                const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+                if(isMobile) { window.location.href = fallbackUrl; }
+                else { navigator.clipboard.writeText(fallbackUrl).then(() => { alert('명칭 검색 링크 복사됨'); }); }
+            }
+        }
+
+        async function calculateTmapApi() {
+            if(routes.length === 0) { alert('경로를 추가해주세요.'); return; }
+            const box = document.getElementById('apiResultBox');
+            box.style.display = 'block'; box.innerHTML = '🔄 Tmap 서버 연동 및 지도 그리는 중...';
+            document.getElementById('map_wrap').style.display = 'block';
+
+            if(resultdrawArr.length > 0) {
+                for(let i=0; i<resultdrawArr.length; i++) resultdrawArr[i].setMap(null);
+                resultdrawArr = [];
+            }
+
+            try {
+                const startCoord = await geocodeNative("서울 중구 세종대로 110");
+                const endCoord = await geocodeNative(routes[routes.length - 1].addr);
+
+                let passListStr = "";
+                if(routes.length > 1) {
+                    let passCoords = [];
+                    for(let i=0; i < routes.length - 1; i++) {
+                        const coord = await geocodeNative(routes[i].addr);
+                        if(coord) passCoords.push(`${coord.lon},${coord.lat}`);
+                    }
+                    passListStr = passCoords.join('_');
+                }
+
+                var tData = new Tmapv2.extension.TData();
+                var s_latlng = new Tmapv2.LatLng(startCoord.lat, startCoord.lon);
+                var e_latlng = new Tmapv2.LatLng(endCoord.lat, endCoord.lon);
+                var optionObj = { reqCoordType:"WGS84GEO", resCoordType:"WGS84GEO", trafficInfo:"N" };
+                if(passListStr) optionObj.passList = passListStr;
+                
+                var params = {
+                    onComplete: function(result) {
+                        var resultData = result._responseData.features;
+                        const totalInfo = resultData[0].properties;
+                        const timeMin = Math.round(totalInfo.totalTime / 60);
+                        const distKm = (totalInfo.totalDistance / 1000).toFixed(1);
+                        const fare = totalInfo.totalFare.toLocaleString();
+
+                        box.innerHTML = `
+                            <div style="margin-bottom:5px;">🚩 출발: 본사</div>
+                            <div style="margin-bottom:10px;">🏁 도착: ${routes[routes.length-1].name}</div>
+                            총 소요 시간: <span class="api-val">${timeMin} 분</span><br>
+                            총 이동 거리: <span class="api-val">${distKm} km</span><br>
+                            예상 통행료: <span class="api-val">${fare} 원</span>
+                        `;
+
+                        let drawInfoArr = [];
+                        let positionBounds = new Tmapv2.LatLngBounds();
+                        
+                        resultData.forEach(feature => {
+                            if (feature.geometry.type === "LineString") {
+                                feature.geometry.coordinates.forEach(coord => {
+                                    let latlng = new Tmapv2.Point(coord[0], coord[1]);
+                                    let convertPoint = new Tmapv2.Projection.convertEPSG3857ToWGS84GEO(latlng);
+                                    let finalLatLng = new Tmapv2.LatLng(convertPoint._lat, convertPoint._lng);
+                                    drawInfoArr.push(finalLatLng);
+                                    positionBounds.extend(finalLatLng);
+                                });
+                            }
+                        });
+
+                        let polyline = new Tmapv2.Polyline({ path: drawInfoArr, strokeColor: "#DD0000", strokeWeight: 6, map: map });
+                        resultdrawArr.push(polyline);
+                        map.panToBounds(positionBounds); map.zoomOut();
+                    },
+                    onError: function() { box.innerHTML = `<span style="color:#ef4444;">❌ 통신 에러 (API 상태 확인 요망)</span>`; }
+                };
+
+                tData.getRoutePlanJson(s_latlng, e_latlng, optionObj, params);
+
+            } catch(e) { box.innerHTML = `<span style="color:#ef4444;">❌ 통신 에러 (주소가 명확하지 않습니다.)</span>`; }
+        }
+
+        function autoHyphenBiz(t) { t.value = t.value.replace(/[^0-9]/g, '').replace(/^(\d{3})(\d{2})(\d{1,5})$/, "$1-$2-$3").replace(/^(\d{3})(\d{1,2})$/, "$1-$2"); }
+        function autoHyphenPhone(t) { let v = t.value.replace(/[^0-9]/g, ''); t.value = v.startsWith('02') ? v.replace(/^(\d{2})(\d{3,4})(\d{4})$/, "$1-$2-$3") : v.replace(/^(\d{3})(\d{3,4})(\d{4})$/, "$1-$2-$3"); }
+        function formatMoney(t) { let val = t.value.replace(/[^0-9]/g, ''); t.value = val ? Number(val).toLocaleString() : ''; }
+        function execDaumPostcode(addrId, detailId) { new daum.Postcode({ oncomplete: function(data) { document.getElementById(addrId).value = data.address; document.getElementById(detailId).focus(); isFormModified = true; } }).open(); }
+        function checkOther(sel) { const next = sel.nextElementSibling; if(next && next.classList.contains('custom-input')) next.style.display = (sel.value === '기타') ? 'inline-block' : 'none'; }
+        function toggleCostAmount(sel) {
+            const amountInput = sel.nextElementSibling.tagName === 'BR' ? sel.nextElementSibling.nextElementSibling : sel.nextElementSibling;
+            if(sel.value === '무상' || sel.value === '해당없음') { amountInput.style.display = 'none'; amountInput.value = ''; } 
+            else { amountInput.style.display = 'inline-block'; }
+        }
+
+        let addrIdxCounter = 0;
+        function addRealAddress(data = null) {
+            addrIdxCounter++;
+            const div = document.createElement("div"); div.className = "flex-row additional-addr";
+            div.style.background = "#fffbeb"; div.style.padding = "10px"; div.style.borderRadius = "8px"; div.style.marginTop = "5px";
+            div.innerHTML = `
+                <select class="addr-type" style="width: 120px; margin-right:10px; font-weight:bold;" onchange="toggleRealAddrType(this)">
+                    <option value="실제 주소">📍 실제 주소</option><option value="기타">✏️ 기타 주소</option>
+                </select>
+                <input type="text" class="addr-type-other custom-input" placeholder="명칭(예:창고)" style="width: 90px; margin-right:10px;">
+                <input type="text" class="addr-main" id="r_addr_${addrIdxCounter}" style="width: 200px;" placeholder="주소 검색" readonly>
+                <button type="button" class="btn-back" onclick="execDaumPostcode('r_addr_${addrIdxCounter}', 'r_detail_${addrIdxCounter}')">검색</button>
+                <input type="text" class="addr-detail" id="r_detail_${addrIdxCounter}" placeholder="상세주소" style="width: 120px;">
+                <input type="text" class="addr-memo" placeholder="비고(예:2층)" style="width: 130px; background:#f8fafc;">
+                <button type="button" class="btn-del" onclick="this.parentElement.remove(); isFormModified=true;">✖</button>
+            `;
+            document.getElementById("additionalAddressList").appendChild(div);
+
+            if(data) {
+                const sel = div.querySelector('.addr-type'); sel.value = data.type; toggleRealAddrType(sel);
+                if(data.type === '기타') div.querySelector('.addr-type-other').value = data.type_other || '';
+                div.querySelector('.addr-main').value = data.main || '';
+                div.querySelector('.addr-detail').value = data.detail || '';
+                div.querySelector('.addr-memo').value = data.memo || '';
+            }
+        }
+        function toggleRealAddrType(sel) { sel.nextElementSibling.style.display = (sel.value === '기타') ? 'inline-block' : 'none'; }
+
+        function addContract(data = null) {
+            const container = document.getElementById('contractListContainer');
+            const div = document.createElement('div'); div.className = "flex-row contract-item";
+            div.style.background = "#fff"; div.style.padding = "10px"; div.style.borderRadius = "8px"; div.style.border = "1px solid #e2e8f0";
+            div.innerHTML = `
+                <input type="text" class="cont-memo" placeholder="약정 명칭/비고 (예: 키오스크 추가)" style="width:200px; font-weight:bold;">
+                <input type="text" class="cont-amount" placeholder="금액(원)" oninput="formatMoney(this)" style="width:90px; text-align:right;">
+                시작일: <input type="date" class="cont-start" onchange="calcContExpire(this)">
+                기간: <select class="cont-term" onchange="calcContExpire(this)"><option value="12">1년</option><option value="24">2년</option><option value="36" selected>3년</option></select>
+                <input type="date" class="cont-expire" readonly style="width:120px; background:#f1f5f9; border:none; color:#ef4444; font-weight:bold;">
+                <button type="button" class="btn-del" onclick="this.parentElement.remove(); isFormModified=true;">X</button>
+            `;
+            container.appendChild(div);
+            if(data) {
+                div.querySelector('.cont-memo').value = data.memo || ''; div.querySelector('.cont-amount').value = data.amount || '';
+                div.querySelector('.cont-start').value = data.start || ''; div.querySelector('.cont-term').value = data.term || '36';
+                calcContExpire(div.querySelector('.cont-start'));
+            } else { calcContExpire(div.querySelector('.cont-start')); }
+            isFormModified = true;
+        }
+        function calcContExpire(el) {
+            const wrap = el.parentElement; const start = wrap.querySelector('.cont-start').value; const term = parseInt(wrap.querySelector('.cont-term').value);
+            if(start && term) { let d = new Date(start); d.setMonth(d.getMonth() + term); wrap.querySelector('.cont-expire').value = d.toISOString().split('T')[0]; }
+        }
+
+        function addContact(role='', phone='') {
+            const div = document.createElement("div"); div.className = "flex-row extra-contact";
+            div.innerHTML = `<input type="text" class="contact-role" value="${role}" placeholder="예: 실무자" style="width: 100px;">
+                             <input type="text" class="contact-phone" value="${phone}" placeholder="숫자만 입력" oninput="autoHyphenPhone(this)" maxlength="13" style="width: 150px;">
+                             <button type="button" class="btn-del" onclick="this.parentElement.remove(); isFormModified=true;">삭제</button>`;
+            document.getElementById("extraContactsList").appendChild(div);
+        }
+
+        const eqData = {
+            "포스": ["아펙사", "아임유", "히트플러스", "히트", "신흥", "기타"],
+            "키오스크": ["아임유", "효성", "하나시스", "고려", "기타"],
+            "카드단말기": { "FD": ["3103(4200)", "1901", "1902", "1700", "2100", "1602", "1401", "1300", "기타"], "코밴": ["7503", "7602", "7403", "7402", "7401", "기타"], "금결": ["jt-330", "jt-270", "기타"], "이지": ["3인치", "2인치", "기타"], "토스": ["프론트", "기타"], "기타": ["기타"] },
+            "사인패드": ["FD", "코밴", "금결", "이지", "토스", "기타"], 
+            "멀티패드": ["FD", "코밴", "금결", "이지", "토스", "기타"], 
+            "휴대용단말기": ["FD", "코밴", "금결", "이지", "토스", "기타"],
+            "리더기": { "FD": ["scs", "듀얼아이", "아펙사", "신흥", "하나시스", "기타"], "코밴": ["scs", "듀얼아이", "아펙사", "신흥", "하나시스", "기타"] },
+            "프린터": [], "태블릿": ["st10n", "st10", "세우태블릿", "apex", "imuz", "ahapos", "기타"], "보조배터리": [], "기타": [] 
+        };
+
+        function normalizeType(typeStr) { return typeStr ? typeStr.replace(/^\d+_/, '') : ''; }
+
+        // ✅ 모델명이 엇갈리거나 증발하는 현상을 100% 동기화로 해결한 함수 (setTimeout 없음)
+        function syncEqUI(wrap, typeVal, vanVal) {
+            const vanSel = wrap.querySelector('.eq-van') || wrap.querySelector('.action-new-van');
+            const modelSel = wrap.querySelector('.eq-model') || wrap.querySelector('.action-new-model');
+            const typeOther = wrap.querySelector('.eq-type-other') || wrap.querySelector('.action-new-type-other');
+            const qtyInput = wrap.querySelector('.eq-qty') || wrap.querySelector('.action-new-qty');
+            const condWrap = wrap.querySelector('.eq-cond-wrap') || wrap.querySelector('.action-new-cond');
+            
+            vanSel.style.display = 'none'; modelSel.style.display = 'inline-block'; modelSel.innerHTML = '<option value="">모델</option>'; typeOther.style.display = 'none';
+            qtyInput.style.display = 'none'; if(condWrap) condWrap.style.display = 'inline-block';
+
+            if(!typeVal || !eqData[typeVal]) return;
+
+            if (typeVal === "기타") { typeOther.style.display = 'inline-block'; modelSel.style.display = 'none'; return; }
+            if (typeVal === "프린터" || typeVal === "보조배터리") { modelSel.style.display = 'none'; qtyInput.style.display = 'inline-block'; if(condWrap && condWrap.tagName === 'SELECT') condWrap.style.display='none'; return; }
+            if (typeVal === "멀티패드" || typeVal === "사인패드") { 
+                vanSel.style.display = 'inline-block'; vanSel.innerHTML = '<option value="">VAN 선택</option>'; 
+                eqData[typeVal].forEach(m=>{vanSel.innerHTML+=`<option value="${m}">${m}</option>`}); 
+                modelSel.style.display = 'none'; return; 
+            }
+            
+            if(Array.isArray(eqData[typeVal])) { 
+                eqData[typeVal].forEach(m => { modelSel.innerHTML += `<option value="${m}">${m}</option>`; }); 
+            } else { 
+                vanSel.style.display = 'inline-block'; vanSel.innerHTML = '<option value="">VAN</option>'; 
+                for(let van in eqData[typeVal]) { vanSel.innerHTML += `<option value="${van}">${van}</option>`; } 
+                if (vanVal && eqData[typeVal][vanVal]) {
+                    eqData[typeVal][vanVal].forEach(m => { modelSel.innerHTML += `<option value="${m}">${m}</option>`; });
+                }
+            }
+        }
+
+        function addEquipment(data = null) {
+            const eqId = (data && data.eq_id) ? data.eq_id : 'eq_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+            const div = document.createElement("div"); div.className = "equipment-item flex-row";
+            div.dataset.eqId = eqId; 
+            div.style.backgroundColor = "white"; div.style.padding = "10px"; div.style.border = "1px solid #e2e8f0"; div.style.borderRadius = "8px"; div.style.marginBottom = "5px";
+            
+            let html = `<select class="eq-type" onchange="changeEqType(this)"><option value="">분류 선택</option>`;
+            for (let key in eqData) { html += `<option value="${key}">${key}</option>`; }
+            const rnd = Math.random();
+            html += `</select>
+                     <input type="text" class="eq-type-other custom-input" placeholder="분류명" style="width: 90px;">
+                     <select class="eq-van" style="display:none;" onchange="changeVan(this)"><option value="">VAN</option></select>
+                     <select class="eq-model" onchange="checkOther(this)"><option value="">모델</option></select>
+                     <input type="text" class="eq-model-other custom-input" placeholder="모델명" style="width: 90px;">
+                     <input type="number" class="eq-qty" placeholder="수량" style="display:none; width:60px;" min="1" value="1">
+                     <span class="eq-cond-wrap" style="margin-left:10px;">
+                        <label><input type="radio" name="cond_${rnd}" value="신품" checked> 신품</label>
+                        <label><input type="radio" name="cond_${rnd}" value="중고"> 중고</label>
+                     </span>
+                     <input type="text" class="eq-memo" placeholder="장비별 메모" style="flex-grow: 1; min-width: 100px; margin-left: 10px;">
+                     <span class="eq-badge-container"></span>
+                     <button type="button" class="btn-del" onclick="this.closest('.equipment-item').remove(); isFormModified=true;">X</button>`;
+            div.innerHTML = html;
+            document.getElementById("equipmentList").appendChild(div);
+
+            if(data) {
+                const normType = normalizeType(data.type);
+                div.querySelector('.eq-type').value = normType;
+                syncEqUI(div, normType, data.van); 
+                
+                if(normType === "기타" && data.type_other) div.querySelector('.eq-type-other').value = data.type_other;
+                if(data.van) div.querySelector('.eq-van').value = data.van;
+                if(data.model) div.querySelector('.eq-model').value = data.model;
+                if(data.model_other) { checkOther(div.querySelector('.eq-model')); div.querySelector('.eq-model-other').value = data.model_other; }
+                if(data.qty) div.querySelector('.eq-qty').value = data.qty;
+                const radios = div.querySelectorAll(`input[type="radio"]`);
+                radios.forEach(r => { if(r.value === data.cond) r.checked = true; });
+                div.querySelector('.eq-memo').value = data.memo || '';
+            }
+        }
+        
+        function cleanBlankEquipment() {
+            document.querySelectorAll('.equipment-item').forEach(el => {
+                const type = el.querySelector('.eq-type').value;
+                if(!type) el.remove();
+            });
+        }
+
+        function getEqDataFromDOM(eqId) {
+            const el = document.querySelector(`.equipment-item[data-eq-id="${eqId}"]`); if(!el) return null;
+            return {
+                eq_id: eqId, type: el.querySelector('.eq-type').value, type_other: el.querySelector('.eq-type-other').value,
+                van: el.querySelector('.eq-van').value, model: el.querySelector('.eq-model').value, model_other: el.querySelector('.eq-model-other').value,
+                qty: el.querySelector('.eq-qty').value, cond: el.querySelector('input[type="radio"]:checked')?.value, memo: el.querySelector('.eq-memo').value
+            };
+        }
+        function removeEqFromDOM(eqId) { const el = document.querySelector(`.equipment-item[data-eq-id="${eqId}"]`); if(el) el.remove(); }
+
+        function changeEqType(sel) { syncEqUI(sel.parentElement, normalizeType(sel.value), null); }
+        function changeVan(sel) { syncEqUI(sel.parentElement, normalizeType(sel.parentElement.querySelector('.eq-type')?sel.parentElement.querySelector('.eq-type').value : sel.parentElement.querySelector('.action-new-type').value), sel.value); }
+
+        // ✅ 장비 목록 뱃지 (클릭 시 딜레이 주고 확실하게 하이라이트)
+        function scrollToHistory(idx) {
+            switchTab('history');
+            setTimeout(() => {
+                const el = document.getElementById('history_item_' + idx);
+                if(el) {
+                    el.scrollIntoView({behavior: "smooth", block: "center"});
+                    el.classList.remove('highlight-glow');
+                    void el.offsetWidth; 
+                    el.classList.add('highlight-glow');
+                }
+            }, 600); // 0.6초 지연으로 탭 렌더링 완료 보장
+        }
+
+        function updateEquipmentBadges() {
+            document.querySelectorAll('.equipment-item').forEach((el) => {
+                const eqId = el.dataset.eqId;
+                const badgeContainer = el.querySelector('.eq-badge-container');
+                badgeContainer.innerHTML = '';
+                for(let i=0; i<masterHistories.length; i++) {
+                    const h = masterHistories[i];
+                    if(h.status === '완료' && h.actions) {
+                        for(let act of h.actions) {
+                            if((act.actType === '설치' || act.actType === '교체') && act.newEq && act.newEq.eq_id === eqId) {
+                                badgeContainer.innerHTML = `<span class="eq-history-badge" onclick="scrollToHistory(${i})">🔗 [${h.date} ${act.actType}]</span>`;
+                                return; 
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // ✅ 전역 이력 렌더링
+        let masterHistories = [];
+        function renderAllHistories() {
+            const equipContainer = document.getElementById('equipHistoryContainer');
+            const historyContainer = document.getElementById('historyList');
+            equipContainer.innerHTML = ''; historyContainer.innerHTML = '';
+
+            masterHistories.forEach((h, index) => {
+                let imgHtml = '';
+                if(h.img_urls && h.img_urls.length > 0) {
+                    h.img_urls.forEach(url => { imgHtml += `<img src="${url}" class="hist-img" onclick="window.open(this.src)">`; });
+                }
+                
+                let actionBadges = '';
+                if(h.auto_content) {
+                    const lines = h.auto_content.split('\n');
+                    actionBadges += `<div style="margin:8px 0; background:#f8fafc; padding:8px; border-radius:6px;">`;
+                    lines.forEach(line => {
+                        if(line.includes('[설치]')) actionBadges += `<div style="color:#10b981; font-size:13px; margin-bottom:3px;">${line}</div>`;
+                        else if(line.includes('[수거]') || line.includes('[해지]')) actionBadges += `<div style="color:#ef4444; font-size:13px; margin-bottom:3px;">${line}</div>`;
+                        else if(line.includes('[교체]')) actionBadges += `<div style="color:#f59e0b; font-size:13px; margin-bottom:3px;">${line}</div>`;
+                    });
+                    actionBadges += `</div>`;
+                }
+
+                const manualContent = h.content ? `<div style="font-size:15px; margin-top:5px; white-space:pre-line; color:#1e293b;">${h.content}</div>` : '';
+                const cat = h.category === '기타' ? h.category_other : h.category;
+                
+                let statusHtml = '';
+                if(h.status === '예정') {
+                    statusHtml = `<span style="background:#f59e0b; color:white; padding:2px 6px; border-radius:4px; font-size:12px;">예정</span>`;
+                    statusHtml += ` <button type="button" class="btn-process-huge" onclick="processTask(${index})">▶ 처리 완료하기</button>`;
+                } else {
+                    statusHtml = `<span style="background:#10b981; color:white; padding:2px 6px; border-radius:4px; font-size:12px;">완료</span>`;
+                }
+
+                const html = `
+                    <div class="work-action-box" id="history_item_${index}">
+                        <div style="display:flex; justify-content:space-between;">
+                            <div style="font-size:14px; color:#64748b;">${statusHtml} 📅 ${h.date||'미정'} | 👷 ${h.worker||'미지정'} | 🏷️ ${cat}</div>
+                            <div>
+                                <button type="button" onclick="editHistory(${index})" style="background:none; border:none; color:#3b82f6; cursor:pointer; font-weight:bold;">수정</button>
+                                <button type="button" onclick="deleteHistory(${index})" style="background:none; border:none; color:#ef4444; cursor:pointer; font-weight:bold;">삭제</button>
+                            </div>
+                        </div>
+                        ${actionBadges}
+                        ${manualContent}
+                        <div style="display:flex; gap:10px; flex-wrap:wrap;">${imgHtml}</div>
+                    </div>`;
+
+                if(h.mode === '장비' || (h.actions && h.actions.length > 0) || ['교체','설치','회수'].includes(h.category)) equipContainer.innerHTML += html;
+                historyContainer.innerHTML += html;
+            });
+            
+            if(equipContainer.innerHTML === '') equipContainer.innerHTML = '<div style="color:#94a3b8;">등록된 장비 변경 이력이 없습니다.</div>';
+            if(historyContainer.innerHTML === '') historyContainer.innerHTML = '<div style="color:#94a3b8;">등록된 작업 이력이 없습니다.</div>';
+            
+            updateEquipmentBadges();
+        }
+
+        function processTask(idx) {
+            editHistory(idx);
+            document.getElementById('work_status').value = '완료';
+            if(!document.getElementById('work_date').value) {
+                const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+                document.getElementById('work_date').value = (new Date(Date.now() - tzoffset)).toISOString().split('T')[0];
+            }
+            if(!document.getElementById('work_worker').value) { document.getElementById('work_worker').value = '오혜성'; }
+            toggleWorkStatus();
+        }
+
+        function reverseActions(actions) {
+            if(!actions) return;
+            for(let i = actions.length - 1; i >= 0; i--) {
+                const act = actions[i];
+                if(act.actType === '설치') removeEqFromDOM(act.newEq.eq_id);
+                else if(act.actType === '해지') addEquipment(act.oldEq);
+                else if(act.actType === '교체') { removeEqFromDOM(act.newEq.eq_id); addEquipment(act.oldEq); }
+            }
+        }
+        function forwardActions(actions) {
+            if(!actions) return;
+            for(let i = 0; i < actions.length; i++) {
+                const act = actions[i];
+                if(act.actType === '설치') addEquipment(act.newEq);
+                else if(act.actType === '해지') removeEqFromDOM(act.oldEq.eq_id);
+                else if(act.actType === '교체') { removeEqFromDOM(act.oldEq.eq_id); addEquipment(act.newEq); }
+            }
+        }
+
+        function deleteHistory(idx) {
+            const h = masterHistories[idx];
+            let msg = "이 이력을 삭제하시겠습니까?";
+            
+            if(h.status === '완료' && h.actions && h.actions.length > 0) {
+                msg += "\n\n※ 해당 작업으로 변경된 장비 목록도 취소(원상복구)됩니다.";
+            }
+            
+            if(confirm(msg)) {
+                if(h.status === '완료') reverseActions(h.actions); 
+                masterHistories.splice(idx, 1); 
+                renderAllHistories(); isFormModified = true;
+            }
+        }
+
+        // ✅ 과거 이력 잠금 (이후에 수정 이력이 있으면 회색 음영 처리)
+        function getLockedEqIds(editIdx) {
+            const locked = new Set();
+            for (let i = 0; i < editIdx; i++) {
+                if(masterHistories[i].actions) {
+                    masterHistories[i].actions.forEach(a => {
+                        if(a.newEq) locked.add(a.newEq.eq_id);
+                        if(a.oldEq) locked.add(a.oldEq.eq_id);
+                    });
+                }
+            }
+            return locked;
+        }
+
+        // ✅ 모달 안에 그려질 액션 로우 (➔ 화살표 완벽 적용)
+        function addWorkActionRow(actionData = null, lockedIds = new Set()) {
+            const container = document.getElementById('workActionContainer');
+            const div = document.createElement('div');
+            div.className = "flex-row action-row-item";
+            div.style.background = "#fff"; div.style.padding = "5px"; div.style.borderRadius = "6px"; div.style.border = "1px solid #cbd5e1"; div.style.marginBottom = "5px";
+            
+            let oldEqOptions = '<option value="">대상 기존 장비...</option>';
+            let existingEqs = new Map();
+            document.querySelectorAll('.equipment-item').forEach((el) => {
+                const eqId = el.dataset.eqId;
+                const tEl = el.querySelector('.eq-type'); if(!tEl || !tEl.value) return;
+                const mEl = el.querySelector('.eq-model').value || el.querySelector('.eq-model-other').value || el.querySelector('.eq-van').value || '장비';
+                existingEqs.set(eqId, `[${tEl.value}] ${mEl}`);
+            });
+            if(actionData && actionData.oldEq && !existingEqs.has(actionData.oldEq.eq_id)) {
+                existingEqs.set(actionData.oldEq.eq_id, `[${normalizeType(actionData.oldEq.type)}] ${actionData.oldEq.model || actionData.oldEq.van || actionData.oldEq.type_other}`);
+            }
+
+            for (let [eqId, eqLabel] of existingEqs.entries()) {
+                let isSelected = (actionData && actionData.oldEq && actionData.oldEq.eq_id === eqId) ? 'selected' : '';
+                oldEqOptions += `<option value="${eqId}" ${isSelected}>${eqLabel}</option>`;
+            }
+
+            let typeOptions = '<option value="">분류</option>';
+            for (let key in eqData) {
+                let isSelected = (actionData && actionData.newEq && normalizeType(actionData.newEq.type) === key) ? 'selected' : '';
+                typeOptions += `<option value="${key}" ${isSelected}>${key}</option>`;
+            }
+
+            let isLocked = false;
+            if(actionData) {
+                if(actionData.newEq && lockedIds.has(actionData.newEq.eq_id)) isLocked = true;
+                if(actionData.oldEq && lockedIds.has(actionData.oldEq.eq_id)) isLocked = true;
+            }
+            const disabledAttr = isLocked ? "disabled" : "";
+            const lockMsg = isLocked ? `<span style="color:#ef4444; font-size:11px; font-weight:bold; margin-left:10px;">(※ 이후 변경 이력 있음: 수정불가)</span>` : `<button type="button" class="btn-del" style="padding:4px 8px; margin-left:auto;" onclick="this.parentElement.remove()">X</button>`;
+
+            // ✅ 교체 시 ➔ 화살표 추가
+            div.innerHTML = `
+                <select class="action-type" onchange="toggleActionFields(this)" style="font-weight:bold; font-size:13px; padding:4px; width:70px;" ${disabledAttr}>
+                    <option value="설치">➕ 설치</option><option value="교체">🔄 교체</option><option value="해지">❌ 해지</option>
+                </select>
+                <select class="action-old-eq" onchange="syncNewEqTypeToOld(this)" style="display:none; font-size:13px; padding:4px; max-width:130px;" ${disabledAttr}>${oldEqOptions}</select>
+                
+                <span class="action-arrow" style="display:none; font-weight:bold; color:#ef4444; font-size:18px; margin:0 5px;">➔</span>
+                
+                <div class="action-new-eq" style="display:flex; gap:4px; align-items:center;">
+                    <select class="action-new-type" onchange="changeEqType(this)" style="font-size:13px; padding:4px; width:70px;" ${disabledAttr}>${typeOptions}</select>
+                    <input type="text" class="action-new-type-other custom-input" placeholder="분류" style="font-size:13px; padding:4px; width:60px;" ${disabledAttr}>
+                    <select class="action-new-van" style="display:none; font-size:13px; padding:4px; width:60px;" onchange="changeVan(this)" ${disabledAttr}><option value="">VAN</option></select>
+                    <select class="action-new-model" onchange="checkOther(this)" style="font-size:13px; padding:4px; width:80px;" ${disabledAttr}><option value="">모델</option></select>
+                    <input type="text" class="action-new-model-other custom-input" placeholder="모델" style="font-size:13px; padding:4px; width:60px;" ${disabledAttr}>
+                    <input type="number" class="action-new-qty" style="display:none; font-size:13px; padding:4px; width:50px;" placeholder="수량" min="1" value="1" ${disabledAttr}>
+                    <select class="action-new-cond" style="display:none; font-size:13px; padding:4px; width:60px;" ${disabledAttr}><option value="신품">신품</option><option value="중고">중고</option></select>
+                    <input type="text" class="action-new-memo" placeholder="장비별 메모" style="font-size:13px; padding:4px; width:90px;" ${disabledAttr}>
+                </div>
+                ${lockMsg}
+            `;
+            if(isLocked) div.style.background = "#f8fafc"; 
+
+            container.appendChild(div);
+
+            if(actionData) {
+                div.querySelector('.action-type').value = actionData.actType; toggleActionFields(div.querySelector('.action-type'));
+                if(actionData.actType === '해지' || actionData.actType === '교체') div.querySelector('.action-old-eq').value = actionData.oldEq.eq_id;
+                
+                if(actionData.actType === '설치' || actionData.actType === '교체') {
+                    const newEq = actionData.newEq;
+                    const normType = normalizeType(newEq.type);
+                    
+                    div.querySelector('.action-new-type').value = normType;
+                    syncEqUI(div, normType, newEq.van);
+                    
+                    div.querySelector('.action-new-type-other').value = newEq.type_other || '';
+                    if(newEq.van) div.querySelector('.action-new-van').value = newEq.van;
+                    if(newEq.model) div.querySelector('.action-new-model').value = newEq.model;
+                    if(newEq.model_other) { checkOther(div.querySelector('.action-new-model')); div.querySelector('.action-new-model-other').value = newEq.model_other; }
+                    if(newEq.qty) div.querySelector('.action-new-qty').value = newEq.qty;
+                    div.querySelector('.action-new-cond').value = newEq.cond || '신품';
+                    div.querySelector('.action-new-memo').value = newEq.memo || '';
+                    div.dataset.pendingNewEqId = newEq.eq_id;
+                    div.dataset.isLocked = isLocked ? "true" : "false";
+                }
+            } else { toggleActionFields(div.querySelector('.action-type')); }
+        }
+
+        // ✅ 교체 시 ➔ 화살표 토글
+        function toggleActionFields(sel) {
+            const wrap = sel.parentElement; const type = sel.value;
+            wrap.querySelector('.action-old-eq').style.display = (type === '교체' || type === '해지') ? 'inline-block' : 'none';
+            wrap.querySelector('.action-arrow').style.display = (type === '교체') ? 'inline-block' : 'none';
+            wrap.querySelector('.action-new-eq').style.display = (type === '설치' || type === '교체') ? 'flex' : 'none';
+        }
+
+        // ✅ 교체 시 이전 장비 선택하면 '신규 장비' 분류 자동 세팅 (동기화)
+        function syncNewEqTypeToOld(sel) {
+            const wrap = sel.closest('.action-row-item');
+            const oldEqId = sel.value;
+            if(!oldEqId) return;
+
+            const oldEqData = getEqDataFromDOM(oldEqId) || masterHistories.flatMap(h=>h.actions||[]).find(a=>a?.newEq?.eq_id===oldEqId)?.newEq;
+            if(oldEqData) {
+                const newTypeSel = wrap.querySelector('.action-new-type');
+                newTypeSel.value = normalizeType(oldEqData.type);
+                changeEqType(newTypeSel); 
+            }
+        }
+
+        let tempRevertedActions = null; 
+
+        // ✅ 이력 수정 (빈칸 강제 생성 버그 완전 삭제)
+        function editHistory(idx) {
+            const h = masterHistories[idx];
+            document.getElementById('edit_history_idx').value = idx;
+            document.getElementById('work_mode').value = h.mode;
+            document.getElementById('work_status').value = h.status || '완료';
+            document.getElementById('work_date').value = h.date || '';
+            document.getElementById('work_worker').value = h.worker || '';
+            document.getElementById('work_category').value = h.category || '기타';
+            document.getElementById('work_category_other').value = h.category_other || '';
+            
+            const catSel = document.getElementById('work_category');
+            checkOther(catSel);
+            
+            document.getElementById('work_content').value = h.content || ''; 
+            document.getElementById('work_img_urls').value = h.img_urls ? JSON.stringify(h.img_urls) : "[]";
+            const previewContainer = document.getElementById('work_img_preview_container');
+            previewContainer.innerHTML = '';
+            if(h.img_urls && h.img_urls.length > 0) {
+                h.img_urls.forEach(url => { previewContainer.innerHTML += `<img src="${url}" style="max-width:100px; border-radius:6px; border:1px solid #ccc;">`; });
+            }
+
+            const container = document.getElementById('workActionContainer');
+            container.innerHTML = "";
+            const lockedIds = getLockedEqIds(idx);
+            
+            if(h.mode === '장비') {
+                document.getElementById('workModalTitle').innerText = "🛠️ 장비 변경 수정";
+                document.getElementById('work_status_row').style.display = 'none';
+                document.getElementById('work_category_row').style.display = 'none';
+                document.getElementById('workActionWrapper').style.display = 'block';
+                if(h.actions && h.actions.length > 0) {
+                    h.actions.forEach(act => addWorkActionRow(act, lockedIds));
+                } else { addWorkActionRow(null, lockedIds); }
+            } else {
+                document.getElementById('workModalTitle').innerText = "📝 작업 이력 수정";
+                document.getElementById('work_status_row').style.display = 'flex';
+                document.getElementById('work_category_row').style.display = 'flex';
+                
+                if(['설치', '교체', '회수'].includes(h.category)) {
+                    document.getElementById('workActionWrapper').style.display = 'block';
+                    if(h.actions && h.actions.length > 0) {
+                        h.actions.forEach(act => addWorkActionRow(act, lockedIds));
+                    }
+                } else {
+                    document.getElementById('workActionWrapper').style.display = 'none';
+                }
+            }
+
+            toggleWorkStatus();
+            document.getElementById('workModal').style.display = 'flex';
+        }
+
+        function cancelWorkModal() { document.getElementById('workModal').style.display = 'none'; }
+
+        function toggleWorkStatus() {
+            const status = document.getElementById('work_status').value;
+            if(status === '완료') document.getElementById('status_warning').style.display = 'inline-block';
+            else document.getElementById('status_warning').style.display = 'none';
+        }
+
+        // ✅ 작업 분류 변경 시 카테고리 동기화 및 1줄만 생성
+        function changeWorkCategory(sel) {
+            checkOther(sel);
+            if(['설치', '교체', '회수'].includes(sel.value)) {
+                document.getElementById('workActionWrapper').style.display = 'block';
+                const container = document.getElementById('workActionContainer');
+                
+                const isEditing = document.getElementById('edit_history_idx').value !== "-1";
+                if(container.children.length === 0 && !isEditing) {
+                    addWorkActionRow();
+                    const firstActSel = container.querySelector('.action-type');
+                    if(firstActSel) {
+                        firstActSel.value = sel.value === '회수' ? '해지' : sel.value;
+                        toggleActionFields(firstActSel);
+                    }
+                } else if (container.children.length > 0) {
+                    const firstActSel = container.querySelector('.action-type');
+                    if(firstActSel) {
+                        firstActSel.value = sel.value === '회수' ? '해지' : sel.value;
+                        toggleActionFields(firstActSel);
+                    }
+                }
+            } else {
+                document.getElementById('workActionWrapper').style.display = 'none';
+            }
+        }
+
+        function openWorkModal(mode) {
+            document.getElementById('edit_history_idx').value = "-1";
+            document.getElementById('work_mode').value = mode || '일반';
+            document.getElementById('work_status').value = "완료";
+            
+            const tzoffset = (new Date()).getTimezoneOffset() * 60000;
+            document.getElementById('work_date').value = (new Date(Date.now() - tzoffset)).toISOString().split('T')[0];
+            document.getElementById('work_worker').value = "오혜성";
+            document.getElementById('work_content').value = "";
+            document.getElementById('work_img_urls').value = "[]";
+            document.getElementById('work_img_preview_container').innerHTML = "";
+            document.getElementById('workActionContainer').innerHTML = "";
+            tempRevertedActions = null;
+            
+            if(mode === '장비') {
+                document.getElementById('workModalTitle').innerText = "🛠️ 장비 변경";
+                document.getElementById('work_status_row').style.display = 'none';
+                document.getElementById('work_status').value = '완료';
+                document.getElementById('work_category_row').style.display = 'none';
+                document.getElementById('work_category').value = '교체'; 
+                document.getElementById('workActionWrapper').style.display = 'block';
+                addWorkActionRow(); 
+                // 장비 변경 탭은 기본이 교체이므로 토글 실행
+                const firstActSel = document.getElementById('workActionContainer').querySelector('.action-type');
+                if(firstActSel) { firstActSel.value = '교체'; toggleActionFields(firstActSel); }
+            } else {
+                document.getElementById('workModalTitle').innerText = "📝 작업 이력 등록";
+                document.getElementById('work_status_row').style.display = 'flex';
+                document.getElementById('work_status').value = '예정';
+                document.getElementById('work_category_row').style.display = 'flex';
+                document.getElementById('work_category').value = '방문AS';
+                document.getElementById('work_category_other').style.display = "none";
+                document.getElementById('workActionWrapper').style.display = 'none';
+                document.getElementById('work_date').value = "";
+                document.getElementById('work_worker').value = "";
+            }
+            
+            toggleWorkStatus();
+            document.getElementById('workModal').style.display = 'flex';
+        }
+
+        function applyWorkRecord() {
+            const idx = parseInt(document.getElementById('edit_history_idx').value);
+            const mode = document.getElementById('work_mode').value;
+            const status = mode === '장비' ? '완료' : document.getElementById('work_status').value;
+            const date = document.getElementById('work_date').value;
+            const worker = document.getElementById('work_worker').value;
+            const category = mode === '장비' ? '교체' : document.getElementById('work_category').value;
+            const category_other = document.getElementById('work_category_other').value;
+            const content = document.getElementById('work_content').value; 
+            const img_urls = JSON.parse(document.getElementById('work_img_urls').value || "[]");
+
+            if (status === '완료' && !date) { alert("완료된 작업은 일자를 선택해주세요."); return; }
+
+            let actionsToSave = [];
+            let autoContentArray = [];
+            const isActionVisible = document.getElementById('workActionWrapper').style.display === 'block';
+
+            if(isActionVisible) {
+                const actionsUI = document.querySelectorAll('.action-row-item');
+                for (let row of actionsUI) {
+                    const actType = row.querySelector('.action-type').value;
+                    const isLocked = row.dataset.isLocked === "true";
+                    if(!isLocked) {
+                        if((actType==='교체'||actType==='해지') && !row.querySelector('.action-old-eq').value) { alert("기존 장비를 선택해주세요."); return; }
+                        if((actType==='설치'||actType==='교체') && !row.querySelector('.action-new-type').value) { alert("신규 장비 분류를 선택해주세요."); return; }
+                    }
+                }
+
+                actionsUI.forEach(row => {
+                    const actType = row.querySelector('.action-type').value;
+                    const oldEqId = row.querySelector('.action-old-eq').value;
+                    const isLocked = row.dataset.isLocked === "true"; 
+                    let oldEq = null, newEq = null;
+
+                    if(isLocked && idx > -1) {
+                        const originalAction = masterHistories[idx].actions.find(a => a.newEq?.eq_id === row.dataset.pendingNewEqId || a.oldEq?.eq_id === oldEqId);
+                        if(originalAction) {
+                            actionsToSave.push(originalAction);
+                            const oModel = originalAction.oldEq ? (originalAction.oldEq.model || originalAction.oldEq.model_other || originalAction.oldEq.van || "") : "";
+                            const nModel = originalAction.newEq ? (originalAction.newEq.model || originalAction.newEq.model_other || originalAction.newEq.van || "") : "";
+                            if(originalAction.actType === '해지') autoContentArray.push(`❌ [수거] ${normalizeType(originalAction.oldEq.type)} (${oModel})`);
+                            if(originalAction.actType === '설치') autoContentArray.push(`➕ [설치] ${normalizeType(originalAction.newEq.type)} (${nModel}) - ${originalAction.newEq.cond}`);
+                            if(originalAction.actType === '교체') autoContentArray.push(`🔄 [교체] ${normalizeType(originalAction.oldEq.type)}(${oModel}) ➔ ${normalizeType(originalAction.newEq.type)}(${nModel}) - ${originalAction.newEq.cond}`);
+                            return;
+                        }
+                    }
+
+                    if (actType === '해지' || actType === '교체') {
+                        oldEq = getEqDataFromDOM(oldEqId) || masterHistories.flatMap(h=>h.actions||[]).find(a=>a?.newEq?.eq_id===oldEqId)?.newEq;
+                        const oModel = oldEq ? (oldEq.model || oldEq.model_other || oldEq.van || "") : "";
+                        if(actType === '해지' && oldEq) autoContentArray.push(`❌ [수거] ${normalizeType(oldEq.type)} (${oModel})`);
+                    }
+                    
+                    if (actType === '설치' || actType === '교체') {
+                        const pendingId = row.dataset.pendingNewEqId || ('eq_' + Date.now() + '_' + Math.floor(Math.random()*1000));
+                        const newType = row.querySelector('.action-new-type').value;
+                        newEq = {
+                            eq_id: pendingId, type: newType, type_other: row.querySelector('.action-new-type-other').value,
+                            van: row.querySelector('.action-new-van').value, model: row.querySelector('.action-new-model').value, model_other: row.querySelector('.action-new-model-other').value,
+                            qty: row.querySelector('.action-new-qty').value, cond: row.querySelector('.action-new-cond').value, memo: row.querySelector('.action-new-memo').value
+                        };
+                        const nModel = newEq.model || newEq.model_other || newEq.van || "";
+                        if(actType === '설치') autoContentArray.push(`➕ [설치] ${newType} (${nModel}) - ${newEq.cond || newEq.qty+'개'}`);
+                        if(actType === '교체') {
+                            const oModel = oldEq ? (oldEq.model || oldEq.model_other || oldEq.van || "") : "";
+                            const oType = oldEq ? normalizeType(oldEq.type) : "장비";
+                            autoContentArray.push(`🔄 [교체] ${oType}(${oModel}) ➔ ${newType}(${nModel}) - ${newEq.cond}`);
+                        }
+                    }
+                    actionsToSave.push({ actType, oldEq, newEq });
+                    
+                    if(status === '완료') {
+                        if (actType === '해지' || actType === '교체') {
+                            const domEq = document.querySelector(`.equipment-item[data-eq-id="${oldEqId}"]`);
+                            if(domEq) domEq.remove();
+                        }
+                        if (actType === '설치' || actType === '교체') {
+                            const domEq = document.querySelector(`.equipment-item[data-eq-id="${newEq.eq_id}"]`);
+                            if(domEq) {
+                                domEq.querySelector('.eq-type').value = newEq.type; syncEqUI(domEq, newEq.type, newEq.van);
+                                domEq.querySelector('.eq-type-other').value = newEq.type_other;
+                                domEq.querySelector('.eq-van').value = newEq.van;
+                                domEq.querySelector('.eq-model').value = newEq.model;
+                                domEq.querySelector('.eq-model-other').value = newEq.model_other;
+                                domEq.querySelector('.eq-qty').value = newEq.qty;
+                                const rds = domEq.querySelectorAll(`input[type="radio"]`);
+                                rds.forEach(r => { if(r.value === newEq.cond) r.checked = true; });
+                                domEq.querySelector('.eq-memo').value = newEq.memo;
+                            } else {
+                                addEquipment(newEq);
+                            }
+                        }
+                    }
+                });
+            }
+            
+            cleanBlankEquipment(); 
+            const auto_content = autoContentArray.join('\n');
+            const record = { status, mode, date, worker, category, category_other, content, auto_content, img_urls, actions: actionsToSave };
+
+            if(idx > -1) { masterHistories[idx] = record; } 
+            else { masterHistories.unshift(record); }
+
+            renderAllHistories(); isFormModified = true;
+            document.getElementById('workModal').style.display = 'none';
+        }
+
+        window.onload = function() {
+            renderRoutes(); 
+            const urlParams = new URLSearchParams(window.location.search);
+            const merchantId = urlParams.get('id');
+            const phoneParam = urlParams.get('phone');
+            const processIdx = urlParams.get('process_idx'); 
+            const highlightIdx = urlParams.get('highlight_idx'); 
+            const openWorkFlag = urlParams.get('open_work_modal');
+            const isHistoryFocus = window.location.hash === '#history';
+
+            if (merchantId) {
+                document.getElementById('pageTitle').innerText = "📝 가맹점 정보 수정";
+                document.getElementById('merchantId').value = merchantId;
+                
+                fetch(`/api/merchant/${merchantId}`).then(res => res.json()).then(data => {
+                    ['store_name', 'biz_no', 'owner_name', 'owner_phone', 'store_phone', 'biz_address', 'biz_address_detail', 'biz_address_memo', 'merchant_memo', 'franchise', 'franchise_other', 'program_other', 'rental_fee_amount', 'program_fee_amount'].forEach(id => {
+                        if(data[id]) document.getElementById(id).value = data[id];
+                    });
+                    
+                    if(data.rental_fee_type) { document.getElementById('rental_fee_type').value = data.rental_fee_type; toggleCostAmount(document.getElementById('rental_fee_type')); }
+                    if(data.program_fee_type) { document.getElementById('program_fee_type').value = data.program_fee_type; toggleCostAmount(document.getElementById('program_fee_type')); }
+                    
+                    if(data.biz_type) { const r = document.querySelector(`input[name="biz_type"][value="${data.biz_type}"]`); if(r) r.checked = true; }
+                    if(data.tax_type) { const r = document.querySelector(`input[name="tax_type"][value="${data.tax_type}"]`); if(r) r.checked = true; }
+                    if(data.paper_type) { const r = document.querySelector(`input[name="paper_type"][value="${data.paper_type}"]`); if(r) r.checked = true; }
+                    
+                    if(data.van_list) data.van_list.forEach(v => { const c = document.querySelector(`input[name="van"][value="${v}"]`); if(c) c.checked = true; });
+                    if(data.program_list) data.program_list.forEach(p => { const c = document.querySelector(`input[name="program"][value="${p}"]`); if(c) { c.checked = true; if(p==='기타') document.getElementById('program_other').style.display = 'inline-block'; } });
+
+                    if(data.additional_addresses) data.additional_addresses.forEach(a => addRealAddress(a));
+                    if(data.extra_contacts) data.extra_contacts.forEach(c => addContact(c.role, c.phone));
+                    
+                    if(data.equipments && data.equipments.length > 0) {
+                        data.equipments.forEach(eq => {
+                            if(!eq.eq_id) eq.eq_id = 'eq_' + Date.now() + '_' + Math.floor(Math.random()*10000);
+                            addEquipment(eq);
+                        });
+                    } else { addEquipment(); }
+                    
+                    if(data.contracts) data.contracts.forEach(c => addContract(c)); else addContract();
+                    if(data.histories) masterHistories = data.histories;
+                    
+                    renderAllHistories();
+                    checkOther(document.getElementById('franchise')); 
+                    
+                    setTimeout(() => { isFormModified = false; }, 500);
+                    
+                    if(processIdx !== null && processIdx !== undefined) {
+                        switchTab('history');
+                        processTask(parseInt(processIdx));
+                    } else if(highlightIdx !== null && highlightIdx !== undefined) {
+                        scrollToHistory(parseInt(highlightIdx)); 
+                    } else if(openWorkFlag === 'true') {
+                        setTimeout(() => { switchTab('history'); openWorkModal('일반'); }, 300);
+                    } else if(isHistoryFocus) { switchTab('history'); }
+                });
+            } else { 
+                addEquipment(); addContract(); renderAllHistories();
+                if(phoneParam) document.getElementById('owner_phone').value = phoneParam;
+                isFormModified = false;
+            }
+        };
+
+        function saveData() {
+            cleanBlankEquipment(); 
+            const payload = {
+                id: document.getElementById('merchantId').value,
+                store_name: document.getElementById('store_name').value, biz_no: document.getElementById('biz_no').value, owner_name: document.getElementById('owner_name').value, owner_phone: document.getElementById('owner_phone').value, store_phone: document.getElementById('store_phone').value,
+                biz_address: document.getElementById('biz_address').value, biz_address_detail: document.getElementById('biz_address_detail').value, biz_address_memo: document.getElementById('biz_address_memo').value,
+                merchant_memo: document.getElementById('merchant_memo').value, biz_type: document.querySelector('input[name="biz_type"]:checked')?.value, tax_type: document.querySelector('input[name="tax_type"]:checked')?.value, paper_type: document.querySelector('input[name="paper_type"]:checked')?.value,
+                franchise: document.getElementById('franchise').value, franchise_other: document.getElementById('franchise_other').value, program_other: document.getElementById('program_other').value, program_fee_type: document.getElementById('program_fee_type').value, program_fee_amount: document.getElementById('program_fee_amount').value, rental_fee_type: document.getElementById('rental_fee_type').value, rental_fee_amount: document.getElementById('rental_fee_amount').value,
+                van_list: Array.from(document.querySelectorAll('input[name="van"]:checked')).map(cb => cb.value),
+                program_list: Array.from(document.querySelectorAll('input[name="program"]:checked')).map(cb => cb.value),
+                extra_contacts: [], additional_addresses: [], equipments: [], contracts: [], histories: masterHistories
+            };
+
+            document.querySelectorAll('.extra-contact').forEach(div => payload.extra_contacts.push({ role: div.querySelector('.contact-role').value, phone: div.querySelector('.contact-phone').value }));
+            document.querySelectorAll('.additional-addr').forEach(div => {
+                payload.additional_addresses.push({ type: div.querySelector('.addr-type').value, type_other: div.querySelector('.addr-type-other').value, main: div.querySelector('.addr-main').value, detail: div.querySelector('.addr-detail').value, memo: div.querySelector('.addr-memo').value });
+            });
+            document.querySelectorAll('.contract-item').forEach(div => {
+                payload.contracts.push({ memo: div.querySelector('.cont-memo').value, amount: div.querySelector('.cont-amount').value, start: div.querySelector('.cont-start').value, term: div.querySelector('.cont-term').value });
+            });
+            document.querySelectorAll('.equipment-item').forEach(div => {
+                const type = div.querySelector('.eq-type').value; if (!type) return; 
+                payload.equipments.push({ eq_id: div.dataset.eqId, type: type, type_other: div.querySelector('.eq-type-other').value, van: div.querySelector('.eq-van').value, model: div.querySelector('.eq-model').value, model_other: div.querySelector('.eq-model-other').value, qty: div.querySelector('.eq-qty').value, cond: div.querySelector('input[type="radio"]:checked')?.value, memo: div.querySelector('.eq-memo').value });
+            });
+
+            fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) })
+            .then(res => res.json()).then(data => { 
+                if(data.status === 'success') { 
+                    alert('저장되었습니다!'); 
+                    isFormModified = false;
+                    window.removeEventListener('beforeunload', beforeUnloadHandler);
+                    if (!document.getElementById('merchantId').value) {
+                        history.replaceState(null, null, '/register?id=' + data.id);
+                        document.getElementById('merchantId').value = data.id;
+                    }
+                } 
+            });
+        }
+
+        const mockCalls = [ { phone: '010-1111-1111', status: 'active', time: '통화중' }, { phone: '010-9999-8888', status: 'missed', time: '10분 전' }, { phone: '02-123-4567', status: 'ended', time: '1시간 전' } ];
+        function openPhoneModal() {
+            document.getElementById('phoneModal').style.display = 'flex';
+            const container = document.getElementById('callListContainer');
+            container.innerHTML = '<p>조회 중...</p>';
+            
+            const currentId = document.getElementById('merchantId').value;
+            
+            Promise.all(mockCalls.map(c => fetch(`/api/find_by_phone?phone=${c.phone}`).then(r => r.json()).catch(() => ({}))))
+            .then(results => {
+                let html = '';
+                results.forEach((dbResult, i) => {
+                    const call = mockCalls[i]; const isActive = call.status === 'active';
+                    const pulseHtml = isActive ? '<span class="pulse"></span>' : '';
+                    html += `<div class="call-item ${isActive ? 'call-active' : ''}">
+                        <div style="font-weight:bold; font-size:16px;">${pulseHtml}📞 ${call.phone} <span style="font-size:12px; color:gray; font-weight:normal;">(${call.time})</span></div>`;
+                    
+                    if (dbResult && dbResult.matches && dbResult.matches.length > 0) {
+                        dbResult.matches.forEach(match => {
+                            html += `
+                            <div style="background: white; padding: 10px; border: 1px solid #cbd5e1; border-radius: 6px; margin-top: 10px;">
+                                <div style="color:#2563eb; font-size:14px; margin-bottom:5px;">🏪 <b>[${match.role}]</b> ${match.store_name}</div>
+                                <div class="action-row">
+                                    <button type="button" class="btn-go" onclick="safeNavigate('/register?id=${match.id}')">📂 상세</button>`;
+                            
+                            if (match.id == currentId) {
+                                html += `<button type="button" class="btn-hist" onclick="document.getElementById('phoneModal').style.display='none'; switchTab('history');">📝 이력</button>`;
+                            } else {
+                                html += `<button type="button" class="btn-hist" onclick="safeNavigate('/register?id=${match.id}#history')">📝 이력</button>`;
+                            }
+                            html += `</div></div>`;
+                        });
+                        html += `</div>`;
+                    } else {
+                        html += `<div style="color:#ef4444; font-size:14px; margin-top:5px;">❌ 미등록 번호</div>
+                            <div class="action-row"><button type="button" class="btn-new" onclick="safeNavigate('/register?phone=${call.phone}')">➕ 신규 등록 (대표자)</button></div></div>`;
+                    }
+                });
+                container.innerHTML = html;
+            });
+        }
+    </script>
+</body>
+</html>
