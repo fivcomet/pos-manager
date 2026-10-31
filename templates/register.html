@@ -613,17 +613,22 @@
             const typeOther = wrap.querySelector('.eq-type-other') || wrap.querySelector('.action-new-type-other');
             const qtyInput = wrap.querySelector('.eq-qty') || wrap.querySelector('.action-new-qty');
             const condWrap = wrap.querySelector('.eq-cond-wrap') || wrap.querySelector('.action-new-cond');
+            const modelOther = wrap.querySelector('.eq-model-other') || wrap.querySelector('.action-new-model-other');
             
+            // 모델 '기타' 입력칸도 처음 상태로 숨기고 비운다 (분류나 VAN을 바꾸면 이전 모델명은 맞지 않으니까)
+            modelOther.style.display = 'none'; modelOther.value = '';
             vanSel.style.display = 'none'; modelSel.style.display = 'inline-block'; modelSel.innerHTML = '<option value="">모델</option>'; typeOther.style.display = 'none';
             qtyInput.style.display = 'none'; if(condWrap) condWrap.style.display = 'inline-block';
 
             if(!typeVal || !eqData[typeVal]) return;
 
             if (typeVal === "기타") { typeOther.style.display = 'inline-block'; modelSel.style.display = 'none'; return; }
-            if (typeVal === "프린터" || typeVal === "보조배터리") { modelSel.style.display = 'none'; qtyInput.style.display = 'inline-block'; if(condWrap && condWrap.tagName === 'SELECT') condWrap.style.display='none'; return; }
-            if (typeVal === "멀티패드" || typeVal === "사인패드") { 
+            if (typeVal === "프린터" || typeVal === "보조배터리") { modelSel.style.display = 'none'; qtyInput.style.display = 'inline-block'; return; }   // 장비 변경 창에서도 신품/중고를 고를 수 있게 숨기는 줄을 뺐다
+            // 휴대용단말기도 사인패드·멀티패드처럼 VAN만 고르는 장비라서 같은 방식으로 처리한다
+            if (typeVal === "멀티패드" || typeVal === "사인패드" || typeVal === "휴대용단말기") { 
                 vanSel.style.display = 'inline-block'; vanSel.innerHTML = '<option value="">VAN 선택</option>'; 
                 eqData[typeVal].forEach(m=>{vanSel.innerHTML+=`<option value="${m}">${m}</option>`}); 
+                if (vanVal) vanSel.value = vanVal;   // 목록을 새로 만들면 선택이 지워지니까, 고른 VAN을 다시 선택해 둔다
                 modelSel.style.display = 'none'; return; 
             }
             
@@ -632,6 +637,7 @@
             } else { 
                 vanSel.style.display = 'inline-block'; vanSel.innerHTML = '<option value="">VAN</option>'; 
                 for(let van in eqData[typeVal]) { vanSel.innerHTML += `<option value="${van}">${van}</option>`; } 
+                if (vanVal) vanSel.value = vanVal;   // 목록을 새로 만들면 선택이 지워지니까, 고른 VAN을 다시 선택해 둔다
                 if (vanVal && eqData[typeVal][vanVal]) {
                     eqData[typeVal][vanVal].forEach(m => { modelSel.innerHTML += `<option value="${m}">${m}</option>`; });
                 }
