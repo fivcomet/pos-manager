@@ -205,7 +205,7 @@
                 <div id="tab-equip" class="tab-content section">
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom:15px;">
                         <h2 style="margin:0;">현재 보유 장비 목록</h2>
-                        <button type="button" class="btn-add" style="background: #8b5cf6; font-size:15px; padding:10px; margin:0;" onclick="openWorkModal('장비')">🛠️ 장비 변경 (설치/교체/해지)</button>
+                        <button type="button" class="btn-add" style="background: #8b5cf6; font-size:15px; padding:10px; margin:0;" onclick="openWorkModal('장비')">🛠️ 장비 변경 (설치/교체/회수)</button>
                     </div>
                     <div id="equipmentList"></div>
                     <button type="button" class="btn-add" style="background: #e2e8f0; color:#334155; font-size:13px;" onclick="addEquipment()">+ 이력 없이 장비 텍스트만 추가 (초기 셋팅용)</button>
@@ -301,7 +301,7 @@
 
             <div id="workActionWrapper" style="display:none; margin-top:20px; border-top: 2px dashed #cbd5e1; padding-top: 15px;">
                 <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-                    <span style="font-weight:bold; color:#0f172a;">🛠️ 관련 장비 변경 (설치/교체/해지)</span>
+                    <span style="font-weight:bold; color:#0f172a;">🛠️ 관련 장비 변경 (설치/교체/회수)</span>
                     <button type="button" class="btn-add" style="margin:0; padding:6px 12px; font-size:13px;" onclick="addWorkActionRow()">+ 장비 추가</button>
                 </div>
                 <div id="workActionContainer"></div>
@@ -769,7 +769,7 @@
                     actionBadges += `<div style="margin:8px 0; background:#f8fafc; padding:8px; border-radius:6px;">`;
                     lines.forEach(line => {
                         if(line.includes('[설치]')) actionBadges += `<div style="color:#10b981; font-size:13px; margin-bottom:3px;">${line}</div>`;
-                        else if(line.includes('[수거]') || line.includes('[해지]')) actionBadges += `<div style="color:#ef4444; font-size:13px; margin-bottom:3px;">${line}</div>`;
+                        else if(line.includes('[회수]') || line.includes('[수거]') || line.includes('[해지]')) actionBadges += `<div style="color:#ef4444; font-size:13px; margin-bottom:3px;">${line}</div>`;
                         else if(line.includes('[교체]')) actionBadges += `<div style="color:#f59e0b; font-size:13px; margin-bottom:3px;">${line}</div>`;
                     });
                     actionBadges += `</div>`;
@@ -910,7 +910,7 @@
             // ✅ 교체 시 ➔ 화살표 추가
             div.innerHTML = `
                 <select class="action-type" onchange="toggleActionFields(this)" style="font-weight:bold; font-size:13px; padding:4px; width:70px;" ${disabledAttr}>
-                    <option value="설치">➕ 설치</option><option value="교체">🔄 교체</option><option value="해지">❌ 해지</option>
+                    <option value="설치">➕ 설치</option><option value="교체">🔄 교체</option><option value="해지">❌ 회수</option>
                 </select>
                 <select class="action-old-eq" onchange="syncNewEqTypeToOld(this)" style="display:none; font-size:13px; padding:4px; max-width:130px;" ${disabledAttr}>${oldEqOptions}</select>
                 
@@ -1115,7 +1115,7 @@
             const status = mode === '장비' ? '완료' : document.getElementById('work_status').value;
             const date = document.getElementById('work_date').value;
             const worker = document.getElementById('work_worker').value;
-            const category = mode === '장비' ? '교체' : document.getElementById('work_category').value;
+            let category = mode === '장비' ? '교체' : document.getElementById('work_category').value;   // 장비 변경이면 아래에서 실제 한 일로 다시 정한다
             const category_other = document.getElementById('work_category_other').value;
             const content = document.getElementById('work_content').value; 
             const img_urls = JSON.parse(document.getElementById('work_img_urls').value || "[]");
@@ -1149,7 +1149,7 @@
                             actionsToSave.push(originalAction);
                             const oModel = originalAction.oldEq ? (originalAction.oldEq.model || originalAction.oldEq.model_other || originalAction.oldEq.van || "") : "";
                             const nModel = originalAction.newEq ? (originalAction.newEq.model || originalAction.newEq.model_other || originalAction.newEq.van || "") : "";
-                            if(originalAction.actType === '해지') autoContentArray.push(`❌ [수거] ${normalizeType(originalAction.oldEq.type)} (${oModel})`);
+                            if(originalAction.actType === '해지') autoContentArray.push(`❌ [회수] ${normalizeType(originalAction.oldEq.type)} (${oModel})`);
                             if(originalAction.actType === '설치') autoContentArray.push(`➕ [설치] ${normalizeType(originalAction.newEq.type)} (${nModel}) - ${originalAction.newEq.cond}`);
                             if(originalAction.actType === '교체') autoContentArray.push(`🔄 [교체] ${normalizeType(originalAction.oldEq.type)}(${oModel}) ➔ ${normalizeType(originalAction.newEq.type)}(${nModel}) - ${originalAction.newEq.cond}`);
                             return;
@@ -1159,7 +1159,7 @@
                     if (actType === '해지' || actType === '교체') {
                         oldEq = getEqDataFromDOM(oldEqId) || masterHistories.flatMap(h=>h.actions||[]).find(a=>a?.newEq?.eq_id===oldEqId)?.newEq;
                         const oModel = oldEq ? (oldEq.model || oldEq.model_other || oldEq.van || "") : "";
-                        if(actType === '해지' && oldEq) autoContentArray.push(`❌ [수거] ${normalizeType(oldEq.type)} (${oModel})`);
+                        if(actType === '해지' && oldEq) autoContentArray.push(`❌ [회수] ${normalizeType(oldEq.type)} (${oModel})`);
                     }
                     
                     if (actType === '설치' || actType === '교체') {
@@ -1205,6 +1205,15 @@
                 });
             }
             
+            // 장비 변경 창이면, 실제로 한 작업을 '설치 → 교체 → 회수' 순서로 모아 분류로 쓴다 (예: 설치·교체)
+            if (mode === '장비') {
+                const doneTypes = [];
+                if (actionsToSave.some(a => a.actType === '설치')) doneTypes.push('설치');
+                if (actionsToSave.some(a => a.actType === '교체')) doneTypes.push('교체');
+                if (actionsToSave.some(a => a.actType === '해지')) doneTypes.push('회수');   // 저장되는 값은 '해지', 화면 이름은 '회수'
+                if (doneTypes.length > 0) category = doneTypes.join('·');
+            }
+
             cleanBlankEquipment(); 
             const auto_content = autoContentArray.join('\n');
             const record = { status, mode, date, worker, category, category_other, content, auto_content, img_urls, actions: actionsToSave };
