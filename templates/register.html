@@ -881,8 +881,19 @@
             document.querySelectorAll('.equipment-item').forEach((el) => {
                 const eqId = el.dataset.eqId;
                 const tEl = el.querySelector('.eq-type'); if(!tEl || !tEl.value) return;
-                const mEl = el.querySelector('.eq-model').value || el.querySelector('.eq-model-other').value || el.querySelector('.eq-van').value || '장비';
-                existingEqs.set(eqId, `[${tEl.value}] ${mEl}`);
+                const mEl = el.querySelector('.eq-model').value || el.querySelector('.eq-model-other').value || el.querySelector('.eq-van').value || '';
+                // 같은 장비가 여러 줄이면 구분이 안 되니까, 수량·신품/중고·설치일·메모를 이름 뒤에 붙인다
+                // 예: [프린터] · 2대 · 중고 · [2026-10-31 설치]
+                const parts = [`[${tEl.value}] ${mEl}`.trim()];
+                const qtyEl = el.querySelector('.eq-qty');
+                if (qtyEl.style.display !== 'none') parts.push(qtyEl.value + '대');             // 프린터·보조배터리만 수량 칸이 보인다
+                const cond = el.querySelector('input[type="radio"]:checked')?.value;
+                if (cond) parts.push(cond);
+                const badge = el.querySelector('.eq-history-badge');                           // 오른쪽의 [날짜 설치] 표시
+                if (badge) parts.push(badge.innerText.replace('🔗', '').trim());
+                const memo = el.querySelector('.eq-memo').value;
+                if (memo) parts.push(memo);
+                existingEqs.set(eqId, parts.join(' · '));
             });
             if(actionData && actionData.oldEq && !existingEqs.has(actionData.oldEq.eq_id)) {
                 existingEqs.set(actionData.oldEq.eq_id, `[${normalizeType(actionData.oldEq.type)}] ${actionData.oldEq.model || actionData.oldEq.van || actionData.oldEq.type_other}`);
