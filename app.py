@@ -221,7 +221,12 @@ def all_history():
                 "worker": h.get("worker", ""), "category": cat, "content": combined_content, 
                 "img_urls": h.get("img_urls", []), "status": h.get("status", "완료"), "history_idx": idx
             })
-    history_list.sort(key=lambda x: x['date'], reverse=True)
+    # 예정 건을 먼저 보여 준다. 예정은 가까운 날짜부터(미정은 예정 중 맨 뒤), 완료는 최근 날짜부터.
+    plans = [h for h in history_list if h['status'] == '예정']
+    dones = [h for h in history_list if h['status'] != '예정']
+    plans.sort(key=lambda x: x['date'] or '9999-99-99')
+    dones.sort(key=lambda x: x['date'], reverse=True)
+    history_list = plans + dones
     return jsonify(history_list)
 
 if __name__ == '__main__':

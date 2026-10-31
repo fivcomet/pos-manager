@@ -739,7 +739,19 @@
             const historyContainer = document.getElementById('historyList');
             equipContainer.innerHTML = ''; historyContainer.innerHTML = '';
 
-            masterHistories.forEach((h, index) => {
+            // 화면에 보여 줄 순서만 정한다. 저장된 순서(index)는 수정·삭제 버튼이 쓰니까 바꾸지 않는다.
+            // 예정 건이 먼저. 예정은 가까운 날짜부터(미정은 예정 중 맨 뒤), 완료는 최근 날짜부터.
+            const order = masterHistories.map((h, index) => index);
+            order.sort((a, b) => {
+                const ha = masterHistories[a], hb = masterHistories[b];
+                const aPlan = ha.status === '예정', bPlan = hb.status === '예정';
+                if (aPlan !== bPlan) return aPlan ? -1 : 1;
+                if (aPlan) return (ha.date || '9999-99-99').localeCompare(hb.date || '9999-99-99');
+                return (hb.date || '').localeCompare(ha.date || '');
+            });
+
+            order.forEach(index => {
+                const h = masterHistories[index];
                 let imgHtml = '';
                 if(h.img_urls && h.img_urls.length > 0) {
                     h.img_urls.forEach(url => { imgHtml += `<img src="${url}" class="hist-img" onclick="window.open(this.src)">`; });
