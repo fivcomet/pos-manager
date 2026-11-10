@@ -86,7 +86,7 @@
                                     ${statusBadge} <b style="color:#0f172a; font-size:15px; margin:0 8px;">${h.store_name}</b> | 📅 ${h.date||'미정'} | 👷 ${h.worker||'미지정'} | 🏷️ ${h.category}
                                 </div>
                             </div>
-                            <div style="font-weight:bold; font-size:15px; margin-top:8px; white-space:pre-line; color:#1e293b;">${h.content}</div>
+                            <div style="font-weight:bold; font-size:15px; margin-top:8px; white-space:pre-line; color:#1e293b;">${h.content.replace(/\s?\(\)/g, '')}</div>
                         </div>
                     `;
                 });

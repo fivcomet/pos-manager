@@ -606,6 +606,18 @@
 
         function normalizeType(typeStr) { return typeStr ? typeStr.replace(/^\d+_/, '') : ''; }
 
+        // 이력 글자에서 장비 이름 뒤 괄호에 넣을 내용을 만든다.
+        // 모델이 있으면 모델, 프린터·보조배터리는 수량(예: 2대). 넣을 게 없으면 괄호를 아예 붙이지 않는다.
+        function eqLabel(eq) {
+            if (!eq) return '';
+            const parts = [];
+            const model = eq.model || eq.model_other || eq.van || '';
+            if (model) parts.push(model);
+            const t = normalizeType(eq.type);
+            if ((t === '프린터' || t === '보조배터리') && eq.qty) parts.push(eq.qty + '대');
+            return parts.length > 0 ? ` (${parts.join(', ')})` : '';
+        }
+
         // ✅ 모델명이 엇갈리거나 증발하는 현상을 100% 동기화로 해결한 함수 (setTimeout 없음)
         function syncEqUI(wrap, typeVal, vanVal) {
             const vanSel = wrap.querySelector('.eq-van') || wrap.querySelector('.action-new-van');
@@ -768,6 +780,7 @@
                     const lines = h.auto_content.split('\n');
                     actionBadges += `<div style="margin:8px 0; background:#f8fafc; padding:8px; border-radius:6px;">`;
                     lines.forEach(line => {
+                        line = line.replace(/\s?\(\)/g, '');   // 예전에 저장된 이력의 빈 괄호 () 는 화면에서만 지운다
                         if(line.includes('[설치]')) actionBadges += `<div style="color:#10b981; font-size:13px; margin-bottom:3px;">${line}</div>`;
                         else if(line.includes('[회수]') || line.includes('[수거]') || line.includes('[해지]')) actionBadges += `<div style="color:#ef4444; font-size:13px; margin-bottom:3px;">${line}</div>`;
                         else if(line.includes('[교체]')) actionBadges += `<div style="color:#f59e0b; font-size:13px; margin-bottom:3px;">${line}</div>`;
@@ -1158,19 +1171,16 @@
                         const originalAction = masterHistories[idx].actions.find(a => a.newEq?.eq_id === row.dataset.pendingNewEqId || a.oldEq?.eq_id === oldEqId);
                         if(originalAction) {
                             actionsToSave.push(originalAction);
-                            const oModel = originalAction.oldEq ? (originalAction.oldEq.model || originalAction.oldEq.model_other || originalAction.oldEq.van || "") : "";
-                            const nModel = originalAction.newEq ? (originalAction.newEq.model || originalAction.newEq.model_other || originalAction.newEq.van || "") : "";
-                            if(originalAction.actType === '해지') autoContentArray.push(`❌ [회수] ${normalizeType(originalAction.oldEq.type)} (${oModel})`);
-                            if(originalAction.actType === '설치') autoContentArray.push(`➕ [설치] ${normalizeType(originalAction.newEq.type)} (${nModel}) - ${originalAction.newEq.cond}`);
-                            if(originalAction.actType === '교체') autoContentArray.push(`🔄 [교체] ${normalizeType(originalAction.oldEq.type)}(${oModel}) ➔ ${normalizeType(originalAction.newEq.type)}(${nModel}) - ${originalAction.newEq.cond}`);
+                            if(originalAction.actType === '해지') autoContentArray.push(`❌ [회수] ${normalizeType(originalAction.oldEq.type)}${eqLabel(originalAction.oldEq)}`);
+                            if(originalAction.actType === '설치') autoContentArray.push(`➕ [설치] ${normalizeType(originalAction.newEq.type)}${eqLabel(originalAction.newEq)} - ${originalAction.newEq.cond}`);
+                            if(originalAction.actType === '교체') autoContentArray.push(`🔄 [교체] ${normalizeType(originalAction.oldEq.type)}${eqLabel(originalAction.oldEq)} ➔ ${normalizeType(originalAction.newEq.type)}${eqLabel(originalAction.newEq)} - ${originalAction.newEq.cond}`);
                             return;
                         }
                     }
 
                     if (actType === '해지' || actType === '교체') {
                         oldEq = getEqDataFromDOM(oldEqId) || masterHistories.flatMap(h=>h.actions||[]).find(a=>a?.newEq?.eq_id===oldEqId)?.newEq;
-                        const oModel = oldEq ? (oldEq.model || oldEq.model_other || oldEq.van || "") : "";
-                        if(actType === '해지' && oldEq) autoContentArray.push(`❌ [회수] ${normalizeType(oldEq.type)} (${oModel})`);
+                        if(actType === '해지' && oldEq) autoContentArray.push(`❌ [회수] ${normalizeType(oldEq.type)}${eqLabel(oldEq)}`);
                     }
                     
                     if (actType === '설치' || actType === '교체') {
@@ -1181,12 +1191,10 @@
                             van: row.querySelector('.action-new-van').value, model: row.querySelector('.action-new-model').value, model_other: row.querySelector('.action-new-model-other').value,
                             qty: row.querySelector('.action-new-qty').value, cond: row.querySelector('.action-new-cond').value, memo: row.querySelector('.action-new-memo').value
                         };
-                        const nModel = newEq.model || newEq.model_other || newEq.van || "";
-                        if(actType === '설치') autoContentArray.push(`➕ [설치] ${newType} (${nModel}) - ${newEq.cond || newEq.qty+'개'}`);
+                        if(actType === '설치') autoContentArray.push(`➕ [설치] ${newType}${eqLabel(newEq)} - ${newEq.cond}`);
                         if(actType === '교체') {
-                            const oModel = oldEq ? (oldEq.model || oldEq.model_other || oldEq.van || "") : "";
                             const oType = oldEq ? normalizeType(oldEq.type) : "장비";
-                            autoContentArray.push(`🔄 [교체] ${oType}(${oModel}) ➔ ${newType}(${nModel}) - ${newEq.cond}`);
+                            autoContentArray.push(`🔄 [교체] ${oType}${eqLabel(oldEq)} ➔ ${newType}${eqLabel(newEq)} - ${newEq.cond}`);
                         }
                     }
                     actionsToSave.push({ actType, oldEq, newEq });
