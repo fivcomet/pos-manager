@@ -346,7 +346,7 @@
 
         // ✅ 복수 주소 선택 모달 호출 함수
         function promptRouteAdd(id, name, biz_addr, addrsJsonStr) {
-            const addrs = JSON.parse(decodeURIComponent(addrsJsonStr) || '[]');
+            const addrs = JSON.parse(addrsJsonStr || '[]');   // 서버가 준 JSON 글자를 리스트로 바꾼다
             if(addrs.length === 0) {
                 // 추가 주소 없으면 바로 추가
                 routes.push({id, name, addr: biz_addr}); renderRoutes(); alert(`[${name}] 경로가 추가되었습니다.`);
@@ -382,8 +382,14 @@
                         <td>${item.owner_name}</td>
                         <td>${item.phone}</td>
                         <td style="font-size:13px;">${item.address}</td>
-                        <td><button class="btn-add-route" onclick="event.stopPropagation(); promptRouteAdd('${item.id}', '${item.store_name}', '${item.address}', encodeURIComponent('${item.additional_addresses}'))">📍 경로추가</button></td>
+                        <td><button class="btn-add-route">📍 경로추가</button></td>
                     `;
+                    // 버튼에 할 일을 글자(onclick="...") 대신 코드로 직접 연결한다.
+                    // 추가 주소 JSON에 들어 있는 큰따옴표(")가 onclick 글자를 중간에 끊어서 버튼이 고장 났었다.
+                    tr.querySelector('.btn-add-route').onclick = (event) => {
+                        event.stopPropagation();
+                        promptRouteAdd(item.id, item.store_name, item.address, item.additional_addresses);
+                    };
                     tbody.appendChild(tr);
                 });
             });
